@@ -1,0 +1,24 @@
+[project]
+name = "holomorphic"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.13.12"
+dependencies = [
+    "dearpygui>=2.2",
+    "manim>=0.20.1",
+    "manim-slides[pyside6-full]>=5.5.4",
+    "numpy-quaternion>=2024.0.13",
+]
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+
+
+[tool.ruff.lint]
+extend-ignore = ["F401",  "F403"]
