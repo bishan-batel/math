@@ -27,6 +27,7 @@
                 cairo
                 manim 
                 ffmpeg 
+                just
               ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
 
               buildInputs = with pkgs; [ 
