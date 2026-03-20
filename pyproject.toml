@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = "==3.13.12"
 dependencies = [
     "dearpygui>=2.2",
-    "manim>=0.20.1",
     "manim-slides[pyside6-full]>=5.5.4",
     "numpy-quaternion>=2024.0.13",
 ]

@@ -37,11 +37,16 @@
               nativeBuildInputs = with pkgs; [ 
                 pkg-config 
                 pango
-                kdePackages.qtmultimedia
                 texliveFull
                 ffmpeg 
                 manim-slides
-               kdePackages.qtmultimedia ffmpeg pango qt6.qtmultimedia qt6.qtbase 
+                qt6.qtmultimedia 
+                qt6.qtbase 
+                gst_all_1.gstreamer
+                gst_all_1.gst-plugins-base
+                gst_all_1.gst-plugins-good
+                gst_all_1.gst-plugins-bad
+                gst_all_1.gst-libav
               ] ++ pkgs.lib.optional pkgs.stdenv.isLinux (with pkgs; [
                   qt6.qtwayland
                   gst_all_1.gstreamer
@@ -69,6 +74,8 @@
               # 3. If Manim still fails, it may be trying to use a Nix-packaged 'moderngl'.
               # Try setting this to force it to find the system's GL context:
               export LIBGL_DIAGNOSTIC=1 
+              export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}:${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtPluginPrefix}"
+              export GST_PLUGIN_SYSTEM_PATH_1_0="${pkgs.gst_all_1.gstreamer.out}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-base}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-good}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-bad}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-libav}/lib/gstreamer-1.0"
 
               echo "Nix-Darwin OpenGL Bridge Active."
               '' else /*bash*/ ''

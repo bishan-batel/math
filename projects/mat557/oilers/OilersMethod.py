@@ -1,11 +1,9 @@
 import numpy as np
 from manim import *  # pyright: ignore
-from manim.utils.color.BS381 import DARK_CRIMSON, DARK_GREEN, DARK_VIOLET
+from manim.opengl import * # pyright: ignore
 from manim_slides.slide import Slide  # pyright: ignore
+from manim.utils.color.BS381 import DARK_CRIMSON, DARK_GREEN, DARK_VIOLET
 from numpy.polynomial import Polynomial
-
-# COEFFICIENTS = np.array([1, -1, 0, -1])
-
 
 def newtons(z: complex, f: Polynomial, df: Polynomial):
     return z - f(z) / df(z)
@@ -64,6 +62,8 @@ def gen_fractal_image(
 
 
 class Title(Slide):
+    skip_reversing = True
+
     def construct(self):
         plane = ComplexPlane(
             x_range=[-5, 5, 1], y_range=[-5, 5, 1], background_line_style={}
@@ -71,6 +71,12 @@ class Title(Slide):
         plane.z_index = -1
 
         self.add(plane)
+
+        self.play(Create(plane))
+
+        if True: 
+            return
+
 
         # initial value
         z0 = ComplexValueTracker()
@@ -149,95 +155,16 @@ class Title(Slide):
             (-2 + 0j, 2),
         ]:
             self.play(z0.animate(run_time=run_time).set_value(v))  # pyright: ignore
-            self.wait(1)
 
         self.play(z0.animate.set_value(1j))
 
         self.next_slide()
 
-
-class MovingFractal(Slide):
+class Sample(Slide):
     def construct(self):
-        plane = ComplexPlane(
-            x_range=[-5, 5, 1], y_range=[-5, 5, 1], background_line_style={}
-        ).add_coordinates()
-        plane.z_index = -1
-
-        self.add(plane)
-
-        # initial value
-        z0 = ComplexValueTracker()
-        z0.set_value(1j)
-
-        # polynomial & roots
-
-        roots = [
-            ComplexValueTracker().set_value(root)
-            for root in [-0.5 + 2.17944947j, -0.5 - 2.17944947j, 1.0 + 0.0j]
-        ]
-        roots_num = lambda: np.array([r.get_value() for r in roots])
-
-        def current_method(z: complex):
-            f = Polynomial.fromroots(roots_num())
-            df = f.deriv()
-            # d2f = df.deriv()
-            return newtons(z, f=f, df=df)
-
-        fractal = always_redraw(
-            lambda: gen_fractal_image(
-                plane, roots=roots_num(), method=current_method, resolution=1000
-            )
-        )
-
-        def root_updater(tracker):
-            return lambda m: m.move_to(plane.n2p(tracker.get_value()))
-
-        root_dots = [
-            MathTex(f"r{i + 1}")
-            .set_z_index(5)
-            .scale(0.5)
-            .add_updater(root_updater(root))
-            for (i, root) in enumerate(roots)
-        ]
-
-        self.add(fractal)
-        self.add(*root_dots)
-
-        self.next_slide(loop=True)
-
-        self.add(
-            MathTex("z_0")
-            .set_z_index(10)
-            .scale(0.5)
-            .set_color(RED)
-            .add_updater(lambda m: m.move_to(plane.n2p(z0.get_value())))
-        )
-
-        def make_path(z: complex):
-            values = [z]
-
-            for _ in range(40):
-                values.append(current_method(values[-1]))
-
-            points = [Dot(plane.n2p(z)).scale(0.5) for z in values]
-
-            lines = VGroup()
-            for i in range(len(points) - 1):
-                line = Line(
-                    points[i].get_center(),
-                    points[i + 1].get_center(),
-                    stroke_width=2,
-                    color=BLUE,
-                )
-                lines.add(line)
-            lines.add(*points)
-            return lines
-
-        self.add(always_redraw(lambda: make_path(z0.get_value())))
-
-        self.play(roots[0].animate.set_value(-1 + 2j))
-        self.play(roots[0].animate.set_value(2j))
-        self.play(roots[0].animate.set_value(3 + 1j))
-        self.play(roots[0].animate.set_value(1j))
-
+        text = Text("Hello")
+        self.play(Create(text))
         self.next_slide()
+
+        square = Square()
+        self.play(Transform(text, square))
