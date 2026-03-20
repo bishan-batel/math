@@ -1,9 +1,11 @@
+from manim.typing import Point2D_Array, Point2DLike
 import numpy as np
 from manim import *  # pyright: ignore
-from manim.opengl import * # pyright: ignore
+from manim.opengl import *  # pyright: ignore
 from manim_slides.slide import Slide  # pyright: ignore
 from manim.utils.color.BS381 import DARK_CRIMSON, DARK_GREEN, DARK_VIOLET
 from numpy.polynomial import Polynomial
+
 
 def newtons(z: complex, f: Polynomial, df: Polynomial):
     return z - f(z) / df(z)
@@ -22,7 +24,7 @@ def gen_fractal_image(
     steps=30,
     method=newtons,
     COLORS=COLORS,
-    resolution=1_000,
+    resolution=3_000,
 ):
     n = resolution
     # Image resolution
@@ -65,23 +67,24 @@ class Title(Slide):
     skip_reversing = True
 
     def construct(self):
+        text = Tex("Oilers' Method")
+        self.next_slide()
+        self.play(FadeIn(text))
+
+
+class NewtonsFractal(Slide):
+    skip_reversing = True
+
+    def construct(self):
         plane = ComplexPlane(
             x_range=[-5, 5, 1], y_range=[-5, 5, 1], background_line_style={}
         ).add_coordinates()
         plane.z_index = -1
 
-        self.add(plane)
-
-        self.play(Create(plane))
-
-
-        # initial value
-        z0 = ComplexValueTracker()
-        z0.set_value(1j)
-
         # polynomial & roots
         LAMBDA = 5
         COEFFICIENTS = np.array([-LAMBDA, LAMBDA - 1, 0, 1])
+        COEFFICIENTS = np.array([2, -2, 0, 1])
         f = np.polynomial.Polynomial(COEFFICIENTS)
         df = f.deriv()
         d2f = df.deriv()
@@ -98,34 +101,22 @@ class Title(Slide):
 
         fractal = gen_fractal_image(plane, roots=roots_num(), method=current_method)
 
-        if True: 
-            return
-
-        self.add(fractal)
-
+        self.play(Create(plane), FadeIn(fractal))
 
         def root_updater(tracker):
             return lambda m: m.move_to(plane.n2p(tracker.get_value()))
 
         root_dots = [
-            MathTex(f"r{i + 1}")
+            MathTex(f"r_{i + 1}")
             .set_z_index(5)
             .scale(0.5)
             .add_updater(root_updater(root))
             for (i, root) in enumerate(roots)
         ]
 
-        self.add(*root_dots)
+        self.play(*(Create(root) for root in root_dots))
 
-        self.next_slide(loop=True)
-
-        self.add(
-            MathTex("z_0")
-            .set_z_index(10)
-            .scale(0.5)
-            .set_color(RED)
-            .add_updater(lambda m: m.move_to(plane.n2p(z0.get_value())))
-        )
+        self.next_slide()
 
         def make_path(z: complex):
             values = [z]
@@ -147,16 +138,89 @@ class Title(Slide):
             lines.add(*points)
             return lines
 
-        self.add(always_redraw(lambda: make_path(z0.get_value())))
+        # initial value
+        z0 = ComplexValueTracker()
+        z0.set_value(1j)
+
+        z0_marker = (
+            MathTex("z_0")
+            .set_z_index(10)
+            .scale(0.5)
+            .set_color(RED)
+            .add_updater(lambda m: m.move_to(plane.n2p(z0.get_value()) + UP * 0.1))
+        )
+
+        self.play(
+            Create(z0_marker), FadeIn(always_redraw(lambda: make_path(z0.get_value())))
+        )
+
+        self.next_slide(loop=True)
 
         for v, run_time in [
             (0 + 1j, 1),
             (-0.5 + 2j, 1),
             (1 - 2.02j, 1),
-            (-2 + 0j, 2),
+            (-2 + 0j, 1),
         ]:
             self.play(z0.animate(run_time=run_time).set_value(v))  # pyright: ignore
 
-        self.play(z0.animate.set_value(1j))
+        self.play(z0.animate(run_time=1).set_value(1j))  # pyright: ignore
+
+        self.next_slide()
+
+        def flow(pos):
+            z = plane.p2n(pos)
+
+            w = current_method(z) - z
+            return plane.n2p(w)
+
+        stream_lines = StreamLines(
+            func=flow, stroke_width=2, max_anchors_per_line=30, dt=1
+        )
+        stream_lines.start_animation(warm_up=True, flow_speed=0.7, time_width=0.1)
+        self.add(stream_lines)
+        self.wait(8)
+        self.play(FadeOut(stream_lines))
+        stream_lines.clear_updaters(True)
+
+        self.next_slide(auto_next=True)
+
+        n = 30
+        xspace = np.linspace(plane.x_range[0] * 0.5, plane.x_range[1] * 0.5, n)
+        yspace = np.linspace(plane.y_range[0] * 0.5, plane.y_range[1] * 0.5, n)
+
+        points: list[complex] = []
+        point_dots: list[Dot] = []
+        for x in xspace:
+            for y in yspace:
+                points.append(x + 1j * y)
+                point_dots.append(Dot(radius=0.03).move_to(plane.n2p(x + 1j * y)))
+
+        self.play(*(Create(dot) for dot in point_dots))
+
+        for _ in range(20):
+            for i, z in enumerate(points):
+                points[i] = current_method(z)
+            self.wait(1)
+            self.play(
+                *(
+                    dot.animate.move_to(plane.n2p(points[i]))
+                    for i, dot in enumerate(point_dots)
+                )
+            )
+
+        self.next_slide(loop=True, auto_next=True)
+
+        for _ in range(10):
+            for i, z in enumerate(points):
+                points[i] = current_method(z)
+            self.wait(1)
+            self.play(
+                *(
+                    dot.animate.move_to(plane.n2p(points[i]))
+                    for i, dot in enumerate(point_dots)
+                    if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-5
+                )
+            )
 
         self.next_slide()
