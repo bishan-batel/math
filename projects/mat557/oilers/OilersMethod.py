@@ -150,19 +150,22 @@ class NewtonsFractal(Slide):
             .add_updater(lambda m: m.move_to(plane.n2p(z0.get_value()) + UP * 0.1))
         )
 
-        self.play(
-            Create(z0_marker), FadeIn(always_redraw(lambda: make_path(z0.get_value())))
-        )
+        z0_path = always_redraw(lambda: make_path(z0.get_value()))
+        self.play(Create(z0_marker), FadeIn(z0_path))
 
         self.next_slide(loop=True)
 
         for v, run_time in [
-            (0 + 1j, 1),
-            (-0.5 + 2j, 1),
-            (1 - 2.02j, 1),
-            (-2 + 0j, 1),
+            (0 + 1j, 2),
+            (-0.5 + 2j, 2),
+            (1 - 2.02j, 3),
+            (-0.5 - 0.8j, 2),
+            (0.0 - 0.0, 3),
+            (0.2 - 0.0, 3),
+            (-1.0 - 0.0, 3),
         ]:
             self.play(z0.animate(run_time=run_time).set_value(v))  # pyright: ignore
+            self.wait(0.5)
 
         self.play(z0.animate(run_time=1).set_value(1j))  # pyright: ignore
 
@@ -175,13 +178,12 @@ class NewtonsFractal(Slide):
             return plane.n2p(w)
 
         stream_lines = StreamLines(
-            func=flow, stroke_width=2, max_anchors_per_line=30, dt=1
+            func=flow, stroke_width=1.5, max_anchors_per_line=30, dt=1
         )
         stream_lines.start_animation(warm_up=True, flow_speed=0.7, time_width=0.1)
         self.add(stream_lines)
-        self.wait(8)
-        self.play(FadeOut(stream_lines))
-        stream_lines.clear_updaters(True)
+        self.wait(15)
+        self.play(stream_lines.animate.set_opacity(0.4))
 
         self.next_slide(auto_next=True)
 
@@ -206,6 +208,7 @@ class NewtonsFractal(Slide):
                 *(
                     dot.animate.move_to(plane.n2p(points[i]))
                     for i, dot in enumerate(point_dots)
+                    if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
                 )
             )
 
@@ -219,7 +222,7 @@ class NewtonsFractal(Slide):
                 *(
                     dot.animate.move_to(plane.n2p(points[i]))
                     for i, dot in enumerate(point_dots)
-                    if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-5
+                    if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
                 )
             )
 
