@@ -21,4 +21,5 @@ venv = ".venv"
 
 
 [tool.ruff.lint]
+exclude = ["scenes"]
 extend-ignore = ["F401", "F403"]

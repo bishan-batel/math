@@ -1,154 +1,243 @@
+import numpy as np
 from manim import *  # pyright: ignore
 from manim.utils.color.BS381 import DARK_CRIMSON, DARK_GREEN, DARK_VIOLET
-from manim_slides.slide import Slide # pyright: ignore
-import numpy as np
+from manim_slides.slide import Slide  # pyright: ignore
+from numpy.polynomial import Polynomial
 
-roots = np.array([
-    1+0j, 
-    -0.5 + 0.866j, 
-    -0.5 - 0.866j
-])
+# COEFFICIENTS = np.array([1, -1, 0, -1])
 
-def f(z):
-    return z**3 - 1
 
-def df(z):
-    return 3 * z ** 2
+def newtons(z: complex, f: Polynomial, df: Polynomial):
+    return z - f(z) / df(z)
 
-def d2f(z):
-    return 6 * z
 
-def newtons(z):
-    return z - f(z)/df(z)
+def halleys(z: complex, f: Polynomial, df: Polynomial, d2f: Polynomial):
+    return z - (f(z) * df(z)) / ((df(z) ** 2) - 0.5 * f(z) * d2f(z))
 
-def halleys(z):
-    return z - (f(z)*df(z))/((df(z)**2) - 0.5 * f(z) * d2f(z))
-
-method = newtons
 
 COLORS = [DARK_BROWN, DARK_GREEN, DARK_CRIMSON, DARK_VIOLET]
 
+
+def gen_fractal_image(
+    plane: ComplexPlane,
+    roots,
+    steps=30,
+    method=newtons,
+    COLORS=COLORS,
+    resolution=20_000,
+):
+    n = resolution
+    # Image resolution
+
+    # Define complex plane region
+    x = np.linspace(plane.x_range[0], plane.x_range[1], n)
+    y = np.linspace(plane.y_range[0], plane.y_range[1], n)
+    X, Y = np.meshgrid(x, y)
+    z = X + 1j * Y
+
+    # Newton iteration
+    for _ in range(steps):
+        z = method(z)
+
+    # Color based on convergence (3 roots for z^3-1)
+    img_data = np.zeros((n, n, 3))
+    # Roots of z^3-1 are 1, -0.5+0.866j, -0.5-0.866j
+
+    img_data[True] = BLACK.to_int_rgb()
+
+    distances = np.abs(z[np.newaxis, :, :] - roots[:, np.newaxis, np.newaxis])
+    closest = np.argmin(distances, axis=0)
+
+    for i in range(len(roots)):
+        mask = closest == i
+        img_data[mask] = COLORS[i].to_int_rgb()
+
+    img_data[np.min(distances, axis=0) > 1e-3] = BLACK.to_int_rgb()
+
+    # Convert to ImageMobject
+    fractal_image = ImageMobject(img_data.astype(np.uint8))
+    fractal_image.width = plane.width
+    fractal_image.height = plane.height
+    fractal_image.z_index = -1
+
+    return fractal_image
+
+
 class Title(Slide):
-    plane: ComplexPlane
-
-    def gen_fractal_image(self,steps: int):
-        # Image resolution
-
-        n = 20_00
-
-        # Define complex plane region
-        x = np.linspace(self.plane.x_range[0], self.plane.x_range[1], n)
-        y = np.linspace(self.plane.y_range[0], self.plane.y_range[1], n)
-        X, Y = np.meshgrid(x, y)
-        z = X + 1j * Y
-        
-        # Newton iteration
-        for _ in range(steps):
-            z = method(z)
-
-        # Color based on convergence (3 roots for z^3-1)
-        img_data = np.zeros((n, n, 3))
-        # Roots of z^3-1 are 1, -0.5+0.866j, -0.5-0.866j
-
-        img_data[True] = BLACK.to_int_rgb()
-
-        distances = np.abs(z[np.newaxis, :, :] - roots[:, np.newaxis, np.newaxis])
-        closest = np.argmin(distances, axis=0)
-
-        for i in range(len(roots)):
-            mask = (closest == i)
-            img_data[mask] = COLORS[i].to_int_rgb()
-
-        img_data[np.min(distances, axis=0) > 1e-3] = BLACK.to_int_rgb()
-
-        # Convert to ImageMobject
-        fractal_image = ImageMobject(img_data.astype(np.uint8))
-        fractal_image.width = self.plane.width
-        fractal_image.height = self.plane.height
-        fractal_image.z_index = -1
-
-        return fractal_image
-        
-
     def construct(self):
-        self.plane = ComplexPlane(
-            x_range=[-5, 5, 1],
-            y_range=[-5, 5, 1],
-            background_line_style={ }
+        plane = ComplexPlane(
+            x_range=[-5, 5, 1], y_range=[-5, 5, 1], background_line_style={}
         ).add_coordinates()
-        self.plane.z_index = -1
+        plane.z_index = -1
 
-        # self.play(Create(title_text))
+        self.add(plane)
 
-        # self.next_slide()
+        # initial value
+        z0 = ComplexValueTracker()
+        z0.set_value(1j)
 
-        # self.play(Transform(title_text, self.plane))
-        # self.play(Create(self.plane))
-        self.add(self.plane)
+        # polynomial & roots
+        LAMBDA = 5
+        COEFFICIENTS = np.array([-LAMBDA, LAMBDA - 1, 0, 1])
+        f = np.polynomial.Polynomial(COEFFICIENTS)
+        df = f.deriv()
+        d2f = df.deriv()
 
-        # self.next_slide()
-
-        fractal = self.gen_fractal_image(30)
-        self.add(fractal)
-        # self.play(FadeIn(fractal))
-
-        root_dots = [
-            Dot(self.plane.n2p(root)).set_color(WHITE) for root in roots
+        roots = [
+            ComplexValueTracker().set_value(root)
+            for root in np.roots(COEFFICIENTS[::-1])
         ]
 
-        for i in range(len(roots)):
-            dot = root_dots[i]
-            dot.add(MathTex(f"r{i+1}").scale(0.5).next_to(dot,direction=UP,buff=0.0))
+        roots_num = lambda: np.array([r.get_value() for r in roots])
+
+        def current_method(z: complex):
+            return newtons(z, f=f, df=df)
+
+        fractal = gen_fractal_image(plane, roots=roots_num(), method=current_method)
+
+        self.add(fractal)
+
+        def root_updater(tracker):
+            return lambda m: m.move_to(plane.n2p(tracker.get_value()))
+
+        root_dots = [
+            MathTex(f"r{i + 1}")
+            .set_z_index(5)
+            .scale(0.5)
+            .add_updater(root_updater(root))
+            for (i, root) in enumerate(roots)
+        ]
 
         self.add(*root_dots)
 
         self.next_slide(loop=True)
 
-        x0 = ComplexValueTracker()
-        x0.set_value(1j)
+        self.add(
+            MathTex("z_0")
+            .set_z_index(10)
+            .scale(0.5)
+            .set_color(RED)
+            .add_updater(lambda m: m.move_to(plane.n2p(z0.get_value())))
+        )
 
-        marker = Dot()
-        marker.add_updater(lambda m: m.move_to(self.plane.n2p(x0.get_value())))
-        self.add(marker)
-
-
-        def make_path():
-            values = [x0.get_value()]
+        def make_path(z: complex):
+            values = [z]
 
             for _ in range(40):
-                z_prev = values[-1]
-                z = method(z_prev)
-                values.append(z)
+                values.append(current_method(values[-1]))
 
-            points = [Dot(self.plane.n2p(z)).scale(0.5) for z in values]
+            points = [Dot(plane.n2p(z)).scale(0.5) for z in values]
 
             lines = VGroup()
             for i in range(len(points) - 1):
                 line = Line(
                     points[i].get_center(),
-                    points[i+1].get_center(),
+                    points[i + 1].get_center(),
                     stroke_width=2,
-                    color=BLUE
+                    color=BLUE,
                 )
                 lines.add(line)
             lines.add(*points)
             return lines
 
-        self.add(always_redraw(make_path));
+        self.add(always_redraw(lambda: make_path(z0.get_value())))
 
-        # self.add(ParametricFunction(lambda x: self.plane.n2p(np.e ** (0.9 * 1j * x)) , t_range=(0, 10)))
+        for v, run_time in [
+            (0 + 1j, 1),
+            (-0.5 + 2j, 1),
+            (1 - 2.02j, 1),
+            (-2 + 0j, 2),
+        ]:
+            self.play(z0.animate(run_time=run_time).set_value(v))  # pyright: ignore
+            self.wait(1)
 
-        self.play(x0.animate(run_time=1).set_value(0+1j))
-        self.play(x0.animate(run_time=1).set_value(-0.5 + 2j))
-        self.play(x0.animate(run_time=1).set_value(5 + 2j))
-        self.play(x0.animate(run_time=1).set_value(-2 + 0j))
-        self.play(x0.animate(run_time=1).set_value(1j))
+        self.play(z0.animate.set_value(1j))
 
         self.next_slide()
 
-        # for quality in [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]:
-        #     n = self.gen_fractal_image(quality)
-        #     self.next_slide()
-        #     self.remove(fractal)
-        #     self.add(n)
-        #     fractal = n
+
+class MovingFractal(Slide):
+    def construct(self):
+        plane = ComplexPlane(
+            x_range=[-5, 5, 1], y_range=[-5, 5, 1], background_line_style={}
+        ).add_coordinates()
+        plane.z_index = -1
+
+        self.add(plane)
+
+        # initial value
+        z0 = ComplexValueTracker()
+        z0.set_value(1j)
+
+        # polynomial & roots
+
+        roots = [
+            ComplexValueTracker().set_value(root)
+            for root in [-0.5 + 2.17944947j, -0.5 - 2.17944947j, 1.0 + 0.0j]
+        ]
+        roots_num = lambda: np.array([r.get_value() for r in roots])
+
+        def current_method(z: complex):
+            f = Polynomial.fromroots(roots_num())
+            df = f.deriv()
+            # d2f = df.deriv()
+            return newtons(z, f=f, df=df)
+
+        fractal = always_redraw(
+            lambda: gen_fractal_image(
+                plane, roots=roots_num(), method=current_method, resolution=1000
+            )
+        )
+
+        def root_updater(tracker):
+            return lambda m: m.move_to(plane.n2p(tracker.get_value()))
+
+        root_dots = [
+            MathTex(f"r{i + 1}")
+            .set_z_index(5)
+            .scale(0.5)
+            .add_updater(root_updater(root))
+            for (i, root) in enumerate(roots)
+        ]
+
+        self.add(fractal)
+        self.add(*root_dots)
+
+        self.next_slide(loop=True)
+
+        self.add(
+            MathTex("z_0")
+            .set_z_index(10)
+            .scale(0.5)
+            .set_color(RED)
+            .add_updater(lambda m: m.move_to(plane.n2p(z0.get_value())))
+        )
+
+        def make_path(z: complex):
+            values = [z]
+
+            for _ in range(40):
+                values.append(current_method(values[-1]))
+
+            points = [Dot(plane.n2p(z)).scale(0.5) for z in values]
+
+            lines = VGroup()
+            for i in range(len(points) - 1):
+                line = Line(
+                    points[i].get_center(),
+                    points[i + 1].get_center(),
+                    stroke_width=2,
+                    color=BLUE,
+                )
+                lines.add(line)
+            lines.add(*points)
+            return lines
+
+        self.add(always_redraw(lambda: make_path(z0.get_value())))
+
+        self.play(roots[0].animate.set_value(-1 + 2j))
+        self.play(roots[0].animate.set_value(2j))
+        self.play(roots[0].animate.set_value(3 + 1j))
+        self.play(roots[0].animate.set_value(1j))
+
+        self.next_slide()
