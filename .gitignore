@@ -1,6 +1,7 @@
-media/
-slides/
-slides/files/
-dist/
+**/media/
+**/slides/
+**/dist/
+**/__pycache__/
+*.gif
+*.mp4
 .venv/
-/*/**/__pycache__/*
