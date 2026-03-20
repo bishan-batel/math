@@ -1,7 +1,6 @@
-import manim
-from manim.utils.color.BS381 import DARK_GREEN
-from manim_slides import Slide # pyright: ignore
 from manim import *  # pyright: ignore
+from manim.utils.color.BS381 import DARK_GREEN
+from manim_slides.slide import Slide # pyright: ignore
 import numpy as np
 
 r1, r2, r3 = 1+0j, -0.5 + 0.866j, -0.5 - 0.866j
@@ -31,7 +30,7 @@ class Title(Slide):
         # Newton iteration
         for _ in range(steps):
             z = z - f(z) / df(z)
-            
+
         # Color based on convergence (3 roots for z^3-1)
         img_data = np.zeros((n, n, 3))
         # Roots of z^3-1 are 1, -0.5+0.866j, -0.5-0.866j

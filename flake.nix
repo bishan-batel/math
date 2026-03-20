@@ -4,7 +4,6 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    nixgl.url = "github:nix-community/nixGL";
   };
 
   outputs =
@@ -28,36 +27,37 @@
                 cairo
                 manim 
                 ffmpeg 
-                apple
-              ];
+              ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
 
               buildInputs = with pkgs; [ 
                 kdePackages.qtmultimedia
-                apple
-              ];
+              ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
 
               nativeBuildInputs = with pkgs; [ 
                 pkg-config 
+                pango
                 kdePackages.qtmultimedia
                 texliveFull
-              ];
+                ffmpeg 
+                manim-slides
+               kdePackages.qtmultimedia ffmpeg pango qt6.qtmultimedia qt6.qtbase 
+              ] ++ pkgs.lib.optional pkgs.stdenv.isLinux (with pkgs; [
+                  qt6.qtwayland
+                  gst_all_1.gstreamer
+                  gst_all_1.gst-plugins-base
+                  gst_all_1.gst-plugins-good
+                  gst_all_1.gst-plugins-bad
+                  gst_all_1.gst-libav
+                ]);
 
-              env = {
+              env = if pkgs.stdenv.isDarwin then {
                 NIX_LDFLAGS = "-F/System/Library/Frameworks -framework OpenGL -framework Cocoa -framework IOKit";
                 PYOPENGL_PLATFORM="darwin";
-                # DYLD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (
-                #   with pkgs;
-                #   [
-                #     cairo
-                #     ffmpeg
-                #     kdePackages.qtmultimedia
-                #     texliveFull
-                #     apple
-                #   ]
-                # );
+              } else { 
+                LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [ ffmpeg pango qt6.qtwayland qt6.qtmultimedia qt6.qtbase ]);
               };
               
-              shellHook = ''
+              shellHook = if pkgs.stdenv.isDarwin then  /*bash*/ ''
               # 1. Force the dynamic linker to look at the REAL system frameworks first
               export DYLD_FALLBACK_FRAMEWORK_PATH="/System/Library/Frameworks:$DYLD_FALLBACK_FRAMEWORK_PATH"
               export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib:/System/Library/Frameworks/OpenGL.framework/Versions/Current:$DYLD_FALLBACK_LIBRARY_PATH"
@@ -70,6 +70,9 @@
               export LIBGL_DIAGNOSTIC=1 
 
               echo "Nix-Darwin OpenGL Bridge Active."
+              '' else /*bash*/ ''
+                  export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}:${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtPluginPrefix}"
+                  export GST_PLUGIN_SYSTEM_PATH_1_0="${pkgs.gst_all_1.gstreamer.out}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-base}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-good}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-bad}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-libav}/lib/gstreamer-1.0"
               '';
             };
         };

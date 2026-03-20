@@ -21,4 +21,4 @@ venv = ".venv"
 
 
 [tool.ruff.lint]
-extend-ignore = ["F401",  "F403"]
+extend-ignore = ["F401", "F403"]
