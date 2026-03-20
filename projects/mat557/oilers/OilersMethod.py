@@ -74,9 +74,6 @@ class Title(Slide):
 
         self.play(Create(plane))
 
-        if True: 
-            return
-
 
         # initial value
         z0 = ComplexValueTracker()
@@ -99,9 +96,13 @@ class Title(Slide):
         def current_method(z: complex):
             return newtons(z, f=f, df=df)
 
+        if True: 
+            return
+
         fractal = gen_fractal_image(plane, roots=roots_num(), method=current_method)
 
         self.add(fractal)
+
 
         def root_updater(tracker):
             return lambda m: m.move_to(plane.n2p(tracker.get_value()))
@@ -159,12 +160,3 @@ class Title(Slide):
         self.play(z0.animate.set_value(1j))
 
         self.next_slide()
-
-class Sample(Slide):
-    def construct(self):
-        text = Text("Hello")
-        self.play(Create(text))
-        self.next_slide()
-
-        square = Square()
-        self.play(Transform(text, square))
