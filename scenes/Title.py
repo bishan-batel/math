@@ -1,9 +1,13 @@
 from manim import *  # pyright: ignore
-from manim.utils.color.BS381 import DARK_GREEN
+from manim.utils.color.BS381 import DARK_CRIMSON, DARK_GREEN, DARK_VIOLET
 from manim_slides.slide import Slide # pyright: ignore
 import numpy as np
 
-r1, r2, r3 = 1+0j, -0.5 + 0.866j, -0.5 - 0.866j
+roots = np.array([
+    1+0j, 
+    -0.5 + 0.866j, 
+    -0.5 - 0.866j
+])
 
 def f(z):
     return z**3 - 1
@@ -11,7 +15,18 @@ def f(z):
 def df(z):
     return 3 * z ** 2
 
-COLORS = [ DARK_BLUE, DARK_BROWN, DARK_GREEN ]
+def d2f(z):
+    return 6 * z
+
+def newtons(z):
+    return z - f(z)/df(z)
+
+def halleys(z):
+    return z - (f(z)*df(z))/((df(z)**2) - 0.5 * f(z) * d2f(z))
+
+method = newtons
+
+COLORS = [DARK_BROWN, DARK_GREEN, DARK_CRIMSON, DARK_VIOLET]
 
 class Title(Slide):
     plane: ComplexPlane
@@ -29,21 +44,23 @@ class Title(Slide):
         
         # Newton iteration
         for _ in range(steps):
-            z = z - f(z) / df(z)
+            z = method(z)
 
         # Color based on convergence (3 roots for z^3-1)
         img_data = np.zeros((n, n, 3))
         # Roots of z^3-1 are 1, -0.5+0.866j, -0.5-0.866j
 
+        img_data[True] = BLACK.to_int_rgb()
 
-        def dist(r): 
-            return np.abs(z - r)
-        
-        # Assign colors
-        img_data[dist(r1) < np.minimum(dist(r2), dist(r3))] = COLORS[0].to_int_rgb() # Red
-        img_data[dist(r2) < np.minimum(dist(r1), dist(r3))] = COLORS[1].to_int_rgb() # Green
-        img_data[dist(r3) < np.minimum(dist(r1), dist(r2))] = COLORS[2].to_int_rgb() # Blue
-        
+        distances = np.abs(z[np.newaxis, :, :] - roots[:, np.newaxis, np.newaxis])
+        closest = np.argmin(distances, axis=0)
+
+        for i in range(len(roots)):
+            mask = (closest == i)
+            img_data[mask] = COLORS[i].to_int_rgb()
+
+        img_data[np.min(distances, axis=0) > 1e-3] = BLACK.to_int_rgb()
+
         # Convert to ImageMobject
         fractal_image = ImageMobject(img_data.astype(np.uint8))
         fractal_image.width = self.plane.width
@@ -54,7 +71,6 @@ class Title(Slide):
         
 
     def construct(self):
-        title_text = Text("Oilers' Method")
         self.plane = ComplexPlane(
             x_range=[-5, 5, 1],
             y_range=[-5, 5, 1],
@@ -77,17 +93,16 @@ class Title(Slide):
         # self.play(FadeIn(fractal))
 
         root_dots = [
-            Dot(self.plane.n2p(r1)).set_color(WHITE), 
-            Dot(self.plane.n2p(r2)).set_color(WHITE), 
-            Dot(self.plane.n2p(r3)).set_color(WHITE)
+            Dot(self.plane.n2p(root)).set_color(WHITE) for root in roots
         ]
 
-        for i in range(3):
+        for i in range(len(roots)):
             dot = root_dots[i]
-            dot.add(MathTex(f"r{i+1}").next_to(dot,direction=UP).scale(0.5))
-            # root_dots[i].add()
+            dot.add(MathTex(f"r{i+1}").scale(0.5).next_to(dot,direction=UP,buff=0.0))
 
         self.add(*root_dots)
+
+        self.next_slide(loop=True)
 
         x0 = ComplexValueTracker()
         x0.set_value(1j)
@@ -102,7 +117,7 @@ class Title(Slide):
 
             for _ in range(40):
                 z_prev = values[-1]
-                z = z_prev - f(z_prev)/df(z_prev)
+                z = method(z_prev)
                 values.append(z)
 
             points = [Dot(self.plane.n2p(z)).scale(0.5) for z in values]
@@ -116,18 +131,18 @@ class Title(Slide):
                     color=BLUE
                 )
                 lines.add(line)
+            lines.add(*points)
             return lines
 
-        always_redraw(make_path);
+        self.add(always_redraw(make_path));
 
         # self.add(ParametricFunction(lambda x: self.plane.n2p(np.e ** (0.9 * 1j * x)) , t_range=(0, 10)))
 
-        self.play(x0.animate.set_value(0+1j))
-        self.play(x0.animate.set_value(-0.5 + 2j))
-        self.play(x0.animate.set_value(5 + 2j))
-        self.play(x0.animate.set_value(-2 + 0j))
-
-        self.wait(0.5)
+        self.play(x0.animate(run_time=1).set_value(0+1j))
+        self.play(x0.animate(run_time=1).set_value(-0.5 + 2j))
+        self.play(x0.animate(run_time=1).set_value(5 + 2j))
+        self.play(x0.animate(run_time=1).set_value(-2 + 0j))
+        self.play(x0.animate(run_time=1).set_value(1j))
 
         self.next_slide()
 
