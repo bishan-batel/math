@@ -22,7 +22,7 @@ def gen_fractal_image(
     steps=30,
     method=newtons,
     COLORS=COLORS,
-    resolution=20_000,
+    resolution=1_000,
 ):
     n = resolution
     # Image resolution
@@ -96,10 +96,10 @@ class Title(Slide):
         def current_method(z: complex):
             return newtons(z, f=f, df=df)
 
+        fractal = gen_fractal_image(plane, roots=roots_num(), method=current_method)
+
         if True: 
             return
-
-        fractal = gen_fractal_image(plane, roots=roots_num(), method=current_method)
 
         self.add(fractal)
 
