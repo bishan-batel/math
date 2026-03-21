@@ -1,29 +1,35 @@
-start_dir := absolute_path("./")
+PROJECTS_DIR := source_dir()
+project := "mat557/oilers/OilersMethod.py"
+scenes := "Title NewtonsFractal"
+render-subcommand := "render"
 
-set working-directory := "."
+# mani command
 
-latest-project := "mat557/oilers/OilersMethod.py"
-slides := "Title NewtonsFractal"
+manim := "manim"
+renderer := "cairo"
 
 alias pr := present-and-render
 alias p := present
 alias r := render
 
-default: (present-and-render latest-project)
+present-and-render project=project scenes=scenes: (render project) (present scenes)
 
-present-and-render project=latest-project scene=slides: (render project) (present scene)
-
-@present scene=slides:
-    echo Presenting {{ scene }}
-    @uv run manim-slides present {{ scene }}
+@present scenes=scenes:
+    @cd {{ PROJECTS_DIR }}
+    echo Presenting {{ scenes }}
+    @uv run manim-slides present {{ scenes }}
 
 [arg('high-quality', short="h", value="true")]
+[arg('medium', short="m", value="true")]
 [arg('preview', short="p", value="true")]
-[arg('slides', short="s")]
-@render project=latest-project high-quality="false" preview="false" slides=slides *args:
+[arg('scenes', short="s")]
+[arg('manim-subcommand', long="subcmd")]
+@render project=project high-quality="false" medium="false" preview="false" scenes=scenes manim=manim manim-subcommand=render-subcommand args="":
+    @cd {{ PROJECTS_DIR }}
     echo Rendering {{ project }}
-    @uv run manim-slides render "projects/{{ project }}" \
+    @uv run {{ manim }} {{ manim-subcommand }} "{{ PROJECTS_DIR }}/projects/{{ project }}" \
         {{ args }} \
-        {{ if high-quality != "false" { "-qk" } else { "-ql --fps=12" } }} \
-        {{ if preview != "false" { "-p" } else { "" } }} \
-        {{ slides }}
+        --renderer={{ renderer }} \
+        {{ if high-quality != "false" { "-qk" } else if medium != "false" { "-qm" } else { "-ql --fps=12" } }} \
+        {{ if preview != "false" { "-p --enable_gui" } else { "" } }} \
+        {{ scenes }}

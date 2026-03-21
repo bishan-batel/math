@@ -1,0 +1,18 @@
+set allow-duplicate-variables := true
+set allow-duplicate-recipes := true
+
+import "../../../Justfile"
+
+project := "mat557/interp/Spline.py"
+scenes := "RotPara"
+renderer := "cairo"
+
+@preview scenes=scenes:
+    @cd {{ PROJECTS_DIR }}
+    echo Rendering {{ project }}
+    @uv run manim render \
+    --renderer=opengl \
+    --dry_run --force_window \
+    -ql -p \
+     "{{ PROJECTS_DIR }}/projects/{{ project }}" \
+     {{ scenes }}
