@@ -1,0 +1,8 @@
+set allow-duplicate-variables := true
+set allow-duplicate-recipes := true
+set working-directory := "."
+
+default: preview
+
+preview:
+    uv run manimgl ./SplineGL.py --config_file ./custom_config.yml

@@ -1,12 +1,9 @@
-from typing import Callable, cast
-from manim import *  # pyright: ignore
-from manim.opengl import *  # pyright: ignore
-from manim.renderer.opengl_renderer import OpenGLCamera
-from manim.typing import *  # pyright: ignore
-from manim_slides.slide import ThreeDSlide
-from numpy.typing import NDArray
+from typing import cast, TYPE_CHECKING
+
+from manim import MathTex
+import manimlib as mn
+from manimlib import *  # pyright: ignore
 import numpy as np
-import pyquaternion as quat
 from pyquaternion import Quaternion
 
 
@@ -18,11 +15,11 @@ def euler_to_quat(yaw: float, pitch: float, roll: float) -> Quaternion:
     )
 
 
-def apply_quaternion(q_arr: NDArray, point: Point3D) -> Point3DLike:
-    return np.array(Quaternion(q_arr).rotate(point))
+def apply_quaternion(q_arr, point):
+    return Quaternion(q_arr).rotate(point)
 
 
-def parametric_create_splines(input: list[tuple[float, NDArray]]):
+def parametric_create_splines(input: list[tuple[float, np.ndarray]]):
     ts = [t for (t, _) in input]
 
     max_t = np.max(ts)
@@ -49,7 +46,7 @@ def parametric_create_splines(input: list[tuple[float, NDArray]]):
     d2s = (matrix * np.array(del2_x).transpose()).transpose()
     d2s = np.vstack([np.zeros((1, dim)), d2s, np.zeros((1, dim))])
 
-    def spline(i: int, t: float) -> NDArray:
+    def spline(i: int, t: float) -> Vect3:
         return (
             x[i]
             + t * del_x[i]
@@ -63,7 +60,7 @@ def parametric_create_splines(input: list[tuple[float, NDArray]]):
     return full
 
 
-def create_splines(input: list[tuple[float, NDArray]]):
+def create_splines(input: list[tuple[float, np.ndarray]]):
 
     x = np.array([t for (t, _) in input]).ravel()  # parametric input
     y = np.vstack([y for (_, y) in input])  # parametric output
@@ -95,7 +92,7 @@ def create_splines(input: list[tuple[float, NDArray]]):
     d2y = np.linalg.matmul(matrix, del_m)
     d2y = np.vstack([np.zeros((1, dim)), d2y, np.zeros((1, dim))])
 
-    def spline(i: int, t: float) -> NDArray:
+    def spline(i: int, t: float):
         return (
             y[i]
             + m[i] * (t - x[i])
@@ -111,7 +108,7 @@ def create_splines(input: list[tuple[float, NDArray]]):
             )
         )
 
-    def full(t: float) -> NDArray:
+    def full(t: float):
         for i in range(0, n - 1):
             if t <= x[i + 1] and t >= x[i]:
                 return spline(i, t)
@@ -121,10 +118,14 @@ def create_splines(input: list[tuple[float, NDArray]]):
 
 
 class RotationRender(ThreeDScene):
-    spline_points: list[tuple[float, NDArray]]
-    splinegen: Callable[[list[tuple[float, NDArray]]], Callable[[float], Point3D]] = (
-        create_splines
-    )
+    always_depth_test = True
+    splinegen = create_splines
+    spline_points = [
+        (0, Quaternion(degrees=0, axis=[0, 0, 1]).q),
+        (0.4, euler_to_quat(yaw=90, pitch=-30, roll=0).q),
+        (0.8, euler_to_quat(yaw=35, pitch=-90, roll=30).q),
+        (1.0, euler_to_quat(yaw=-140, pitch=-180, roll=-15).q),
+    ]
 
     def construct(self):
 
@@ -133,49 +134,42 @@ class RotationRender(ThreeDScene):
 
         qspline = RotationRender.splinegen(self.spline_points)
 
-        self.camera.zoom = 3.0
-
-        # self.begin_ambient_camera_rotation()
-
-        axes = ThreeDAxes()
-
-        x_label = axes.get_x_axis_label(Tex("x"))
-        y_label = axes.get_y_axis_label(Tex("y")).shift(UP * 1.8)
-        z_label = axes.get_y_axis_label(Tex("z")).shift(IN * 1.8)
-
-        self.add(axes, x_label, y_label, z_label)
+        self.add(ThreeDAxes())
 
         for t, _ in self.spline_points:
             print("T=", t)
             self.add(
-                Arrow3D(
-                    start=(0, 0, 0),
-                    end=(np.array(apply_quaternion(qspline(t), RIGHT)) * 1.3),
-                    thickness=0.02,
-                    # radius=0.08,
-                    color=RED.interpolate(BLUE, (t - QMIN_T) / (QMAX_T - QMIN_T)),
-                )
+                Sphere(
+                    radius=0.08,
+                    color=BLUE,
+                ).move_to(np.array(apply_quaternion(qspline(t), RIGHT)) * 1.3)
             )
         t = ValueTracker(QMIN_T)
 
-        t_display = DecimalNumber(QMIN_T).to_corner(UL)
-        t_display.add_updater(lambda m: m.set_value(t.get_value()))
-        self.add_fixed_in_frame_mobjects(t_display)
+        self.add(
+            VGroup(
+                Tex("t="),
+                DecimalNumber(QMIN_T).add_updater(lambda m: m.set_value(t.get_value())),
+            )
+            .arrange(RIGHT)
+            .fix_in_frame()
+            .to_corner(UL)
+        )
 
         # self.camera.zoom = 2
 
         t.set_value(self.spline_points[0][0])
 
         self.add(
-            Arrow3D(start=(0, 0, 0), color=WHITE).add_updater(
-                lambda m: m.put_start_and_end_on(
-                    (0, 0, 0),
+            Line(color=PURPLE, buff=2).add_updater(
+                lambda m: m.set_points_by_ends(
+                    np.array(apply_quaternion(qspline(t.get_value()), RIGHT)) * 0.5,
                     np.array(apply_quaternion(qspline(t.get_value()), RIGHT)) * 1.3,
                 )
             )
         )
         self.add(
-            Dot3D(radius=0.11, color=WHITE).add_updater(
+            Sphere(radius=0.1, color=PURPLE).add_updater(
                 lambda m: m.move_to(
                     np.array(apply_quaternion(qspline(t.get_value()), RIGHT)) * 1.3,
                 )
@@ -184,22 +178,20 @@ class RotationRender(ThreeDScene):
 
         def update_plane(m: Mobject):
             m.become(
-                Cube(side_length=0.5, color=PURPLE).apply_matrix(
+                Cube(side_length=1.0, color=PURPLE).apply_matrix(
                     Quaternion(qspline(t.get_value())).rotation_matrix
                 )
             )
+            # color=RED.interpolate(BLUE, (t - QMIN_T) / (QMAX_T - QMIN_T)),
 
-        self.add(Sphere(radius=1.29, color=BLUE, fill_opacity=0.3))
         self.add(Cube().add_updater(update_plane))
 
-        def path(t: float):
-            return np.array(apply_quaternion(qspline(t), RIGHT)) * 1.3
-
-        self.add(
-            ParametricFunction(
-                path, stroke_width=0.05, t_range=(QMIN_T, QMAX_T), dt=1e-2
-            )
+        curve = ParametricCurve(
+            t_func=lambda t: np.array(apply_quaternion(qspline(t), RIGHT)) * 1.3,
+            # stroke_width=0.05,
+            t_range=(QMIN_T, QMAX_T, 1e-2),
         )
+        self.add(curve)
 
         # self.interactive_embed()
         def animate_t(value: float, run_time=(QMAX_T - QMIN_T) * 3):
@@ -207,24 +199,10 @@ class RotationRender(ThreeDScene):
                 value
             )
 
-        self.set_camera_orientation(
-            phi=45 * DEGREES,
-            theta=40 * DEGREES,
-            # zoom=2
-        )
+        self.frame.set_phi(45 * DEG)
+        self.frame.set_theta(40 * DEG)
         self.play(animate_t(QMAX_T))
-
-        self.wait(1)
-        self.move_camera(
-            theta=100 * DEGREES,
-            phi=-30 * DEGREES,
-            added_anims=[animate_t(0, run_time=0.5)],
-        )
-        self.play(animate_t(QMAX_T))
-
-        self.wait(1)
-        self.move_camera(theta=200 * DEGREES, added_anims=[animate_t(0, run_time=0.5)])
-        self.play(animate_t(QMAX_T))
+        self.embed()
 
 
 class RotTrivial(RotationRender):
@@ -233,6 +211,15 @@ class RotTrivial(RotationRender):
         (0.25, Quaternion(degrees=90, axis=[0, 0, 1]).q),
         (0.75, Quaternion(degrees=180, axis=[0, 0, 1]).q),
         (1, Quaternion(degrees=270, axis=[0, 0, 1]).q),
+    ]
+
+
+class RotTrivial2(RotationRender):
+    spline_points = [
+        (0.00, Quaternion(degrees=0, axis=[0, 0, 1]).q),
+        (0.25, Quaternion(degrees=90, axis=[0, 0, 1]).q),
+        (0.75, Quaternion(degrees=90, axis=[1, 0, 0]).q),
+        (1.00, Quaternion(degrees=90, axis=[1, 1, 0]).q),
     ]
 
 

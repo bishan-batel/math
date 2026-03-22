@@ -23,9 +23,8 @@
               packages = with pkgs; [
                 cmake
                 uv
-                python3
+                python314
                 cairo
-                manim 
                 ffmpeg 
                 just
               ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
@@ -36,10 +35,11 @@
 
               nativeBuildInputs = with pkgs; [ 
                 pkg-config 
+                python3Packages.setuptools
                 pango
                 texliveFull
                 ffmpeg 
-                manim-slides
+                # manim-slides
                 qt6.qtmultimedia 
                 qt6.qtbase 
                 gst_all_1.gstreamer
@@ -64,15 +64,11 @@
               };
               
               shellHook = if pkgs.stdenv.isDarwin then  /*bash*/ ''
-              # 1. Force the dynamic linker to look at the REAL system frameworks first
               export DYLD_FALLBACK_FRAMEWORK_PATH="/System/Library/Frameworks:$DYLD_FALLBACK_FRAMEWORK_PATH"
               export DYLD_FALLBACK_LIBRARY_PATH="/usr/lib:/System/Library/Frameworks/OpenGL.framework/Versions/Current:$DYLD_FALLBACK_LIBRARY_PATH"
 
-              # 2. Tell PyOpenGL to use the Darwin-specific loader logic
               export PYOPENGL_PLATFORM="darwin"
 
-              # 3. If Manim still fails, it may be trying to use a Nix-packaged 'moderngl'.
-              # Try setting this to force it to find the system's GL context:
               export LIBGL_DIAGNOSTIC=1 
               export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}:${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtPluginPrefix}"
               export GST_PLUGIN_SYSTEM_PATH_1_0="${pkgs.gst_all_1.gstreamer.out}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-base}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-good}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-bad}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-libav}/lib/gstreamer-1.0"

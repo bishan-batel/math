@@ -1,12 +1,12 @@
 PROJECTS_DIR := source_dir()
 project := "mat557/oilers/OilersMethod.py"
-scenes := "Title NewtonsFractal"
+scenes := "Title,NewtonsFractal"
 render-subcommand := "render"
 
 # mani command
 
 manim := "manim"
-renderer := "cairo"
+renderer := "opengl"
 
 alias pr := present-and-render
 alias p := present

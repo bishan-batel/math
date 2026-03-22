@@ -1,0 +1,12 @@
+window:
+  position_string: UR
+  monitor_index: 0
+  full_screen: False
+camera:
+  background_color: "#000000"
+embed:
+  exception_mode: "Verbose"
+  autoreload: False
+style:
+  # font: "Computer Modern"
+  font: "Consolas"
