@@ -1,10 +1,14 @@
-from typing import cast, TYPE_CHECKING
+from typing import TypeAlias, cast, Callable
 
-from manim import MathTex
+import typing
+
 import manimlib as mn
 from manimlib import *  # pyright: ignore
 import numpy as np
+from numpy.typing import NDArray
 from pyquaternion import Quaternion
+
+# VectorND: TypeAlias = npt.NDArray[PointDType]
 
 
 def euler_to_quat(yaw: float, pitch: float, roll: float) -> Quaternion:
@@ -15,11 +19,14 @@ def euler_to_quat(yaw: float, pitch: float, roll: float) -> Quaternion:
     )
 
 
-def apply_quaternion(q_arr, point):
-    return Quaternion(q_arr).rotate(point)
+def apply_quaternion(q_arr: NDArray, point):
+    return np.array(Quaternion(q_arr).rotate(point))
 
 
-def parametric_create_splines(input: list[tuple[float, np.ndarray]]):
+SplineInputPoints = list[tuple[float, NDArray]]
+
+
+def parametric_create_splines(input: SplineInputPoints):
     ts = [t for (t, _) in input]
 
     max_t = np.max(ts)
@@ -46,21 +53,22 @@ def parametric_create_splines(input: list[tuple[float, np.ndarray]]):
     d2s = (matrix * np.array(del2_x).transpose()).transpose()
     d2s = np.vstack([np.zeros((1, dim)), d2s, np.zeros((1, dim))])
 
-    def spline(i: int, t: float) -> Vect3:
+    def spline(i: int, t: float) -> NDArray:
         return (
             x[i]
             + t * del_x[i]
             + (1 / 6) * t * (t - 1) * (-del2_x[i] * (t - 2) + del2_x[i + 1] * (t + 1))
         )
 
-    def full(t: float):
+    def full(t: float) -> NDArray:
         t = (t - max_t) / (max_t - min_t)
-        return spline(np.floor(t), t - np.floor(t))
+        idx_t = max(min(np.floor(t), n - 1), 0)
+        return spline(idx_t, t - idx_t)
 
     return full
 
 
-def create_splines(input: list[tuple[float, np.ndarray]]):
+def create_splines(input: SplineInputPoints):
 
     x = np.array([t for (t, _) in input]).ravel()  # parametric input
     y = np.vstack([y for (_, y) in input])  # parametric output
@@ -92,7 +100,7 @@ def create_splines(input: list[tuple[float, np.ndarray]]):
     d2y = np.linalg.matmul(matrix, del_m)
     d2y = np.vstack([np.zeros((1, dim)), d2y, np.zeros((1, dim))])
 
-    def spline(i: int, t: float):
+    def spline(i: int, t: float) -> NDArray:
         return (
             y[i]
             + m[i] * (t - x[i])
@@ -108,23 +116,27 @@ def create_splines(input: list[tuple[float, np.ndarray]]):
             )
         )
 
-    def full(t: float):
+    def full(t: float) -> NDArray:
         for i in range(0, n - 1):
             if t <= x[i + 1] and t >= x[i]:
                 return spline(i, t)
-        raise Exception("Out of domain")
+        if t <= x[0]:
+            return spline(0, t)
+        return spline(n - 2, t)
 
     return full
 
 
 class RotationRender(ThreeDScene):
     always_depth_test = True
-    splinegen = create_splines
-    spline_points = [
+    splinegen: Callable[[SplineInputPoints], Callable[[float], NDArray]] = (
+        create_splines
+    )
+    spline_points: SplineInputPoints = [
         (0, Quaternion(degrees=0, axis=[0, 0, 1]).q),
         (0.4, euler_to_quat(yaw=90, pitch=-30, roll=0).q),
         (0.8, euler_to_quat(yaw=35, pitch=-90, roll=30).q),
-        (1.0, euler_to_quat(yaw=-140, pitch=-180, roll=-15).q),
+        (1.0, euler_to_quat(yaw=-140, pitch=-140, roll=-40).q),
     ]
 
     def construct(self):
@@ -142,7 +154,7 @@ class RotationRender(ThreeDScene):
                 Sphere(
                     radius=0.08,
                     color=BLUE,
-                ).move_to(np.array(apply_quaternion(qspline(t), RIGHT)) * 1.3)
+                ).move_to(apply_quaternion(qspline(t), RIGHT) * 1.3)
             )
         t = ValueTracker(QMIN_T)
 
@@ -163,8 +175,8 @@ class RotationRender(ThreeDScene):
         self.add(
             Line(color=PURPLE, buff=2).add_updater(
                 lambda m: m.set_points_by_ends(
-                    np.array(apply_quaternion(qspline(t.get_value()), RIGHT)) * 0.5,
-                    np.array(apply_quaternion(qspline(t.get_value()), RIGHT)) * 1.3,
+                    apply_quaternion(qspline(t.get_value()), RIGHT) * 0.5,
+                    apply_quaternion(qspline(t.get_value()), RIGHT) * 1.3,
                 )
             )
         )
@@ -175,6 +187,8 @@ class RotationRender(ThreeDScene):
                 )
             )
         )
+
+        # self.add(Arrow().add_updater(lambda m: m.set_points_by_ends()))
 
         def update_plane(m: Mobject):
             m.become(
@@ -187,7 +201,7 @@ class RotationRender(ThreeDScene):
         self.add(Cube().add_updater(update_plane))
 
         curve = ParametricCurve(
-            t_func=lambda t: np.array(apply_quaternion(qspline(t), RIGHT)) * 1.3,
+            t_func=lambda t: apply_quaternion(qspline(t), RIGHT) * 1.3,
             # stroke_width=0.05,
             t_range=(QMIN_T, QMAX_T, 1e-2),
         )
@@ -195,9 +209,7 @@ class RotationRender(ThreeDScene):
 
         # self.interactive_embed()
         def animate_t(value: float, run_time=(QMAX_T - QMIN_T) * 3):
-            return t.animate(run_time=run_time, rate_func=linear).set_value(  # pyright:ignore
-                value
-            )
+            return t.animate(run_time=run_time, rate_func=linear).set_value(value)
 
         self.frame.set_phi(45 * DEG)
         self.frame.set_theta(40 * DEG)
@@ -228,7 +240,7 @@ class RotAllDirs(RotationRender):
         (0, Quaternion(degrees=0, axis=[0, 0, 1]).q),
         (0.4, euler_to_quat(yaw=90, pitch=-30, roll=0).q),
         (0.8, euler_to_quat(yaw=35, pitch=-90, roll=30).q),
-        (1.0, euler_to_quat(yaw=-140, pitch=-180, roll=-15).q),
+        (1.0, euler_to_quat(yaw=-140, pitch=-150, roll=-45).q),
     ]
 
 
