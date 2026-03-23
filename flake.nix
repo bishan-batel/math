@@ -39,7 +39,7 @@
                 pango
                 texliveFull
                 ffmpeg 
-                # manim-slides
+                manim-slides
                 qt6.qtmultimedia 
                 qt6.qtbase 
                 gst_all_1.gstreamer

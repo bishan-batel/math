@@ -31,7 +31,7 @@ class FirstTitle(Slide):
         self.play(FadeIn(text))
 
 
-class NF(InteractiveScene):
+class NF(Slide):
     skip_reversing = True
     trackers = []
 
@@ -131,8 +131,6 @@ class NF(InteractiveScene):
         z0_path = always_redraw(lambda: make_path(z0.get_value()))
         self.add(z0_marker, z0_path)
         self.next_slide(loop=True)
-
-        self.embed()
 
         for v, run_time in [
             (0 + 1j, 2),
