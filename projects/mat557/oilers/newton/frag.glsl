@@ -1,8 +1,11 @@
 #version 330
 
+#define MAX_COEFS 4
+
 uniform vec2 u_resolution;
 uniform float u_time;
 
+uniform int coeff_count;
 uniform vec3 color1;
 uniform vec3 color2;
 uniform vec3 color3;
@@ -14,6 +17,8 @@ uniform vec2 coef3;
 uniform vec2 root1;
 uniform vec2 root2;
 uniform vec2 root3;
+
+uniform vec2 coefs[MAX_COEFS]
 
 in vec3 xyz_coords;
 

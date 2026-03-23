@@ -3,12 +3,14 @@ import os
 
 sys.path.append(os.getcwd())
 
+from shader_obj import *
+
 import numpy as np
 from manim_slides.slide import Slide  # pyright: ignore
 from manimlib import *
 from numpy.polynomial import Polynomial
 
-from fractal import FractalNewton, ShaderMobject
+from Fractal import FractalNewton
 
 
 def newtons(z: complex, f: Polynomial, df: Polynomial):

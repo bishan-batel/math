@@ -25,3 +25,8 @@ reportOperatorIssue = "warning"
 [tool.ruff.lint]
 exclude = []
 extend-ignore = ["F401", "F403", "F405"]
+
+[tool.uv.workspace]
+members = [
+    "custom/custom",
+]
