@@ -1,6 +1,1 @@
 set allow-duplicate-variables := true
-
-import "../../../Justfile"
-
-project := "mat557/oilers/OilersMethod.py"
-scenes := "Title NewtonsFractal"
