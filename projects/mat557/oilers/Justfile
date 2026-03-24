@@ -1,1 +1,4 @@
 set allow-duplicate-variables := true
+
+default:
+    uv run manimgl ./OilersMethod.py NF

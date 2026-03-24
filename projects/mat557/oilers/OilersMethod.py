@@ -1,6 +1,8 @@
 import sys
 import os
 
+from scipy.optimize import newton
+
 sys.path.append(os.getcwd())
 
 from shader_obj import *
@@ -10,7 +12,7 @@ from manim_slides.slide import Slide  # pyright: ignore
 from manimlib import *
 from numpy.polynomial import Polynomial
 
-from Fractal import FractalNewton
+from fractal import ROOT_COLORS_DEEP, FractalNewton, c2v
 
 
 def newtons(z: complex, f: Polynomial, df: Polynomial, **kargs):
@@ -26,8 +28,10 @@ def oilers(z: complex, f: Polynomial, zp: complex, zpp: complex, **kwargs):
     dfp = (f(zp) - f(zpp)) / (zp - zpp)
     d2f = (df - dfp) / (z - zpp)
 
-    return z - (f(z) * df) / ((df**2) - f(z) * d2f)
+    return z - (f(z) * df) / ((df * df) - f(zp) * d2f)
 
+
+METHOD_TO_MODE = {newtons: 0, halleys: 1, oilers: 2}
 
 COLORS = [BLUE, GREEN_D, RED_D, PURPLE_D]
 
@@ -52,40 +56,33 @@ class NF(Slide):
                 pass
 
             self.next_slide = next_slide
-        self.plane = ComplexPlane(x_range=(-5, 5), y_range=(-6, 6), faded_line_ratio=2)
-        self.plane.add_coordinate_labels(font_size=24)
-        self.plane.opacity = 0.6
-        self.plane.set_opacity(0.8)
 
-        # self.camera.frame.set_width(self.plane.get_width())
+        self.plane = (
+            ComplexPlane(x_range=(-5, 5), y_range=(-6, 6), faded_line_ratio=2)
+            .add_coordinate_labels()
+            .set_opacity(0.8)
+        )
 
         self.add(self.plane)
 
-        # polynomial & roots
-        LAMBDA = 5
-        COEFFICIENTS = np.array([-LAMBDA, LAMBDA - 1, 0, 1])
-        # COEFFICIENTS = np.array([2, -2, 0, 1])
-        # f = np.polynomial.Polynomial(COEFFICIENTS)
-        # df = f.deriv()
-        # d2f = df.deriv()
+        self.method = oilers
 
-        roots = [
+        DEFAULT_COEFFICIENTS = np.array([-5, 4, 0, 1])
+        # COEFFICIENTS = np.array([2, -2, 0, 1])
+
+        self.roots = [
             ComplexValueTracker().set_value(root)
-            for root in np.roots(COEFFICIENTS[::-1])
+            for root in np.roots(DEFAULT_COEFFICIENTS[::-1])
         ]
 
-        self.roots = roots
-
         # Create a shader mobject (a self.plane with shader code)
-        shader_obj = FractalNewton(roots=np.roots(COEFFICIENTS[::-1]))
-
+        scale_factor = ValueTracker(1)
+        shader_obj = FractalNewton(roots=np.roots(DEFAULT_COEFFICIENTS[::-1]))
         shader_obj.set_z_index(-20)
-
-        shader_obj.f_always.set_roots(lambda: [root.get_value() for root in roots])
-
+        shader_obj.f_always.set_scale_factor(lambda: scale_factor.get_value())
+        shader_obj.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
+        shader_obj.f_always.set_mode(lambda: METHOD_TO_MODE[self.method])
         self.add(shader_obj)
-
-        self.method = oilers
 
         def current_method(z: complex, zp: complex, zpp: complex):
             f = shader_obj.polynomial()
@@ -98,8 +95,16 @@ class NF(Slide):
             return lambda m: m.move_to(self.plane.n2p(tracker.get_value()))
 
         root_dots = [
-            Tex(f"r_{i + 1}").set_z_index(5).add_updater(root_updater(root))
-            for (i, root) in enumerate(roots)
+            # Tex(f"r_{i + 1}").set_z_index(5).add_updater(root_updater(root))
+            Dot(
+                fill_color=ROOT_COLORS_DEEP[i],
+                stroke_color=BLACK,
+                stroke_width=5,
+                radius=0.10,
+            )
+            .set_z_index(5)
+            .add_updater(root_updater(root))
+            for (i, root) in enumerate(self.roots)
         ]
 
         self.add(*root_dots)
@@ -107,26 +112,39 @@ class NF(Slide):
         self.next_slide()
 
         def make_path(z: complex):
-            values = [z - 2, z - 1, z]
+            values = [z]
+            if self.method == oilers:
+                f = shader_obj.polynomial()
+                zpp = z
+                zp = zpp + ((1 + np.sqrt(5.0)) / 2.0)
+                z = zp - f(zp) / ((f(zp) - f(zpp)) / (zp - zpp))
+                values = [zpp, zp, z]
+
+            # c = z
+            # values = [c]
 
             for _ in range(100):
-                values.append(
-                    current_method(
-                        z=values[-1],
-                        zp=values[-2],
-                        zpp=values[-3],
-                    )
-                )
-            values = values[2:]
+                zp = None
+                zpp = None
+                if self.method == oilers:
+                    zp = values[-2]
+                    zpp = values[-3]
 
-            points = [Dot(self.plane.n2p(z), radius=0.05) for z in values]
+                values.append(current_method(z=values[-1], zp=zp, zpp=zpp))
+                # values.append(values[-1] ** 2 + c)
+
+            # N(z) = z - f(z) / f'(z)
+            # N(N(z)) = z
+            # N(N(N(z))) = z
+
+            points = [Dot(self.plane.n2p(z), radius=0.03) for z in values]
 
             lines = VGroup()
             for i in range(len(points) - 1):
                 line = Line(
                     start=points[i].get_center(),
                     end=points[i + 1].get_center(),
-                    stroke_width=2,
+                    stroke_width=1.5,
                     color=BLUE,
                 )
                 lines.add(line)
@@ -134,17 +152,20 @@ class NF(Slide):
             return lines
 
         # initial value
+        self.tracker = self.roots[0]
         z0 = ComplexValueTracker()
-        self.tracker = roots[0]
         z0.set_value(1j)
 
         self.z0 = z0
 
+        shader_obj.f_always.set_uniforms(lambda: {"z0": c2v(self.z0.get_value())})
+
         z0_marker = (
             Tex("z_0")
             .set_z_index(10)
+            .scale(0.5)
             .set_color(RED)
-            .add_updater(lambda m: m.move_to(self.plane.n2p(z0.get_value())))
+            .add_updater(lambda m: m.move_to(self.plane.n2p(self.z0.get_value())))
         )
 
         z0_path = always_redraw(lambda: make_path(z0.get_value()))
@@ -168,49 +189,49 @@ class NF(Slide):
 
         self.next_slide()
 
-        n = 30
-        xspace = np.linspace(
-            self.plane.x_range[0] * 0.5, self.plane.x_range[1] * 0.5, n
-        )
-        yspace = np.linspace(
-            self.plane.y_range[0] * 0.5, self.plane.y_range[1] * 0.5, n
-        )
+        # n = 30
+        # xspace = np.linspace(
+        #     self.plane.x_range[0] * 0.5, self.plane.x_range[1] * 0.5, n
+        # )
+        # yspace = np.linspace(
+        #     self.plane.y_range[0] * 0.5, self.plane.y_range[1] * 0.5, n
+        # )
+        #
+        # points: list[complex] = []
+        # point_dots: list[Dot] = []
+        # for x in xspace:
+        #     for y in yspace:
+        #         points.append(x + 1j * y)
+        #         point_dots.append(Dot(radius=0.03).move_to(self.plane.n2p(x + 1j * y)))
+        #
+        # self.play(*(ShowCreation(dot) for dot in point_dots))
 
-        points: list[complex] = []
-        point_dots: list[Dot] = []
-        for x in xspace:
-            for y in yspace:
-                points.append(x + 1j * y)
-                point_dots.append(Dot(radius=0.03).move_to(self.plane.n2p(x + 1j * y)))
-
-        self.play(*(ShowCreation(dot) for dot in point_dots))
-
-        for _ in range(20):
-            for i, z in enumerate(points):
-                points[i] = current_method(z)
-            self.wait(1)
-            self.play(
-                *(
-                    dot.animate.move_to(self.plane.n2p(points[i]))
-                    for i, dot in enumerate(point_dots)
-                    if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
-                )
-            )
-
+        # for _ in range(20):
+        #     for i, z in enumerate(points):
+        #         points[i] = current_method(z)
+        #     self.wait(1)
+        #     self.play(
+        #         *(
+        #             dot.animate.move_to(self.plane.n2p(points[i]))
+        #             for i, dot in enumerate(point_dots)
+        #             if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
+        #         )
+        #     )
+        #
         self.next_slide(loop=True, auto_next=True)
 
-        for _ in range(10):
-            for i, z in enumerate(points):
-                points[i] = current_method(z)
-            self.wait(1)
-            self.play(
-                *(
-                    dot.animate.move_to(self.plane.n2p(points[i]))
-                    for i, dot in enumerate(point_dots)
-                    if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
-                )
-            )
-
+        # for _ in range(10):
+        #     for i, z in enumerate(points):
+        #         points[i] = current_method(z)
+        #     self.wait(1)
+        #     self.play(
+        #         *(
+        #             dot.animate.move_to(self.plane.n2p(points[i]))
+        #             for i, dot in enumerate(point_dots)
+        #             if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
+        #         )
+        #     )
+        #
         self.next_slide()
 
     def on_mouse_drag(self, point, d_point, buttons: int, modifiers: int):

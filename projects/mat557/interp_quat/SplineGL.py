@@ -150,11 +150,15 @@ class RotationRender(ThreeDScene):
 
         for t, _ in self.spline_points:
             print("T=", t)
+            pos = apply_quaternion(qspline(t), RIGHT) * (1.3 + (0.5 * 0.5) - 0.15)
             self.add(
-                Sphere(
-                    radius=0.08,
+                Cube(
+                    side_length=0.3,
                     color=BLUE,
-                ).move_to(apply_quaternion(qspline(t), RIGHT) * 1.3)
+                )
+                .add(Line(start=ORIGIN, end=RIGHT * 0.5, color=BLUE))
+                .apply_matrix(Quaternion(qspline(t)).rotation_matrix)
+                .move_to(pos)
             )
         t = ValueTracker(QMIN_T)
 
@@ -242,8 +246,3 @@ class RotAllDirs(RotationRender):
         (0.8, euler_to_quat(yaw=35, pitch=-90, roll=30).q),
         (1.0, euler_to_quat(yaw=-140, pitch=-150, roll=-45).q),
     ]
-
-
-class RotPara(RotationRender):
-    splinegen = parametric_create_splines
-    spline_points = RotAllDirs.spline_points
