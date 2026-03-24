@@ -31,6 +31,7 @@
 
               buildInputs = with pkgs; [ 
                 kdePackages.qtmultimedia
+                manim-slides
               ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
 
               nativeBuildInputs = with pkgs; [ 
@@ -39,7 +40,6 @@
                 pango
                 texliveFull
                 ffmpeg 
-                manim-slides
                 qt6.qtmultimedia 
                 qt6.qtbase 
                 gst_all_1.gstreamer

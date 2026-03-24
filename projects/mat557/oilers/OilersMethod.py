@@ -1,18 +1,16 @@
 import sys
 import os
 
-from scipy.optimize import newton
-
 sys.path.append(os.getcwd())
 
-from shader_obj import *
+from custom.shader_obj import *
 
-import numpy as np
-from manim_slides.slide import Slide  # pyright: ignore
-from manimlib import *
+from manimlib import *  # pyright: ignore
 from numpy.polynomial import Polynomial
+import numpy as np
+from manim_slides.slide import Slide
 
-from fractal import ROOT_COLORS_DEEP, FractalNewton, c2v
+from projects.mat557.oilers.fractal import ROOT_COLORS_DEEP, FractalNewton, c2v
 
 
 def newtons(z: complex, f: Polynomial, df: Polynomial, **kargs):
@@ -60,24 +58,35 @@ class NF(Slide):
         self.plane = (
             ComplexPlane(x_range=(-5, 5), y_range=(-6, 6), faded_line_ratio=2)
             .add_coordinate_labels()
-            .set_opacity(0.8)
+            .set_opacity(0.3)
         )
 
         self.add(self.plane)
 
-        self.method = oilers
+        self.method = newtons
 
-        DEFAULT_COEFFICIENTS = np.array([-5, 4, 0, 1])
+        # DEFAULT_COEFFICIENTS = np.array([-5, 4, 0, 1])
         # COEFFICIENTS = np.array([2, -2, 0, 1])
+
+        def anim_stream(*zs):
+            if self.method == oilers:
+                return zs
+
+            # z = z_p[0] + 1j * z_p[1]
+            return np.array(map(lambda z: [-z[1], z[0]], zs))
+
+            z = current_method(z, zp=0, zpp=0)
+            return np.array([np.real(z), np.imag(z)])
 
         self.roots = [
             ComplexValueTracker().set_value(root)
-            for root in np.roots(DEFAULT_COEFFICIENTS[::-1])
+            # for root in np.roots(DEFAULT_COEFFICIENTS[::-1])
+            for root in [-1 + 1j, -1 - 1j, 1.9539]
         ]
 
         # Create a shader mobject (a self.plane with shader code)
         scale_factor = ValueTracker(1)
-        shader_obj = FractalNewton(roots=np.roots(DEFAULT_COEFFICIENTS[::-1]))
+        shader_obj = FractalNewton(roots=[r.get_value() for r in self.roots])
         shader_obj.set_z_index(-20)
         shader_obj.f_always.set_scale_factor(lambda: scale_factor.get_value())
         shader_obj.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
@@ -170,7 +179,7 @@ class NF(Slide):
 
         z0_path = always_redraw(lambda: make_path(z0.get_value()))
         self.add(z0_marker, z0_path)
-        self.embed()
+
         self.next_slide(loop=True)
 
         for v, run_time in [
@@ -189,50 +198,7 @@ class NF(Slide):
 
         self.next_slide()
 
-        # n = 30
-        # xspace = np.linspace(
-        #     self.plane.x_range[0] * 0.5, self.plane.x_range[1] * 0.5, n
-        # )
-        # yspace = np.linspace(
-        #     self.plane.y_range[0] * 0.5, self.plane.y_range[1] * 0.5, n
-        # )
-        #
-        # points: list[complex] = []
-        # point_dots: list[Dot] = []
-        # for x in xspace:
-        #     for y in yspace:
-        #         points.append(x + 1j * y)
-        #         point_dots.append(Dot(radius=0.03).move_to(self.plane.n2p(x + 1j * y)))
-        #
-        # self.play(*(ShowCreation(dot) for dot in point_dots))
-
-        # for _ in range(20):
-        #     for i, z in enumerate(points):
-        #         points[i] = current_method(z)
-        #     self.wait(1)
-        #     self.play(
-        #         *(
-        #             dot.animate.move_to(self.plane.n2p(points[i]))
-        #             for i, dot in enumerate(point_dots)
-        #             if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
-        #         )
-        #     )
-        #
         self.next_slide(loop=True, auto_next=True)
-
-        # for _ in range(10):
-        #     for i, z in enumerate(points):
-        #         points[i] = current_method(z)
-        #     self.wait(1)
-        #     self.play(
-        #         *(
-        #             dot.animate.move_to(self.plane.n2p(points[i]))
-        #             for i, dot in enumerate(point_dots)
-        #             if np.min([np.abs(points[i] - r.get_value()) for r in roots]) > 1e-3
-        #         )
-        #     )
-        #
-        self.next_slide()
 
     def on_mouse_drag(self, point, d_point, buttons: int, modifiers: int):
         p = point[0] + 1j * point[1]

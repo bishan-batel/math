@@ -1,4 +1,5 @@
 from manimlib import *
+import numpy as np
 
 
 class ShaderMobject(Mobject):

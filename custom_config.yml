@@ -1,11 +1,14 @@
+# directories:
+# directories:
+mirror_module_path: True
 window:
   position_string: UR
   monitor_index: 0
-  full_screen: False
+  full_screen: false
 camera:
   resolution: (3600, 2338)
   background_color: "#000000"
-  fps: 30
+  fps: 60
   background_opacity: 1.0
 file_writer:
   saturation: 1.5
@@ -15,5 +18,5 @@ text:
 tex:
   template: "default"
 embed:
-  autoreload: False
-ignore_manimlib_modules_on_reload: True
+  autoreload: false
+  ignore_manimlib_modules_on_reload: true

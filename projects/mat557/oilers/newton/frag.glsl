@@ -107,7 +107,7 @@ void main() {
     vec2 c = z;
 
     float iter = 0.0;
-    const float maxIter = 5.0;
+    const float maxIter = 100.0;
 
 
     vec2 mandelbrot = vec2(0.);
@@ -135,10 +135,10 @@ void main() {
     float d2 = length(root2 - z);
     float d3 = length(root3 - z);
 
-    // if (min(d1,min(d2,d3)) > 1E-4 || any(isnan(z))) color = vec3(0.); else 
-    //     if (d1 <= min(d2,d3)) color = color1;
-    // else if (d2 <= min(d1,d3)) color = color2;
-    // else if (d3 <= min(d1,d2)) color = color3;
+    if (min(d1,min(d2,d3)) > 1E-4 || any(isnan(z))) color = vec3(0.); else 
+        if (d1 <= min(d2,d3)) color = color1;
+    else if (d2 <= min(d1,d3)) color = color2;
+    else if (d3 <= min(d1,d2)) color = color3;
 
 
     // if (length(z) < 2.f) {

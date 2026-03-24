@@ -1,4 +1,4 @@
-from shader_obj import *
+from custom.shader_obj import *
 from manimlib import *
 from numpy.polynomial import Polynomial
 from svgelements import max_depth
@@ -21,7 +21,7 @@ class FractalNewton(ShaderMobject):
     def __init__(
         self, roots, degree=3, scale_factor=1, colors=ROOT_COLORS_DEEP, **kwargs
     ):
-        super().__init__(shader_folder="newton", **kwargs)
+        super().__init__(shader_folder="projects/mat557/oilers/newton", **kwargs)
 
         self.roots = roots
         self.degree = degree
