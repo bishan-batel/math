@@ -1,4 +1,5 @@
 #version 330
+precision highp float;
 
 #define MAX_COEFS 4
 
@@ -88,20 +89,16 @@ void main() {
     vec2 zp = z - vec2(1., 0.);
     vec2 zpp = zp - vec2(1., 0.);
 
-    zpp = z;
-    zp = newton(zpp);
-    z = newton(zp);
-
     float iter = 0.0;
     const float maxIter = 100.0;
 
     // Newton-Raphson iteration
     for(float i = 0.0; i < maxIter; i++) {
-        // z = newton(z);
+        z = newton(z);
         // z = halley(z);
-        z = oiler(z, zp, zpp);
-        iter = i;
-        if(length(f(z)) < 0.0001) break;
+        // z = oiler(z, zp, zpp);
+        // iter = i;
+        if(length(f(z)) < 0.00001) break;
     }
 
     // Color based on which root it converged to
@@ -125,7 +122,9 @@ void main() {
 
     if (min(d1,min(d2,d3)) > 1E-3) {
         color = vec3(0.);
+    } else {
     }
+    // color *= iter / maxIter;
 
     fragColor = vec4(color, 1.0);
     // fragColor = vec4(c, sin(u_time), 1.0);
