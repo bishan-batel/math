@@ -13,12 +13,20 @@ from numpy.polynomial import Polynomial
 from Fractal import FractalNewton
 
 
-def newtons(z: complex, f: Polynomial, df: Polynomial):
+def newtons(z: complex, f: Polynomial, df: Polynomial, **kargs):
     return z - f(z) / df(z)
 
 
-def halleys(z: complex, f: Polynomial, df: Polynomial, d2f: Polynomial):
+def halleys(z: complex, f: Polynomial, df: Polynomial, d2f: Polynomial, **kwargs):
     return z - (f(z) * df(z)) / ((df(z) ** 2) - 0.5 * f(z) * d2f(z))
+
+
+def oilers(z: complex, f: Polynomial, zp: complex, zpp: complex, **kwargs):
+    df = (f(z) - f(zp)) / (z - zp)
+    dfp = (f(zp) - f(zpp)) / (zp - zpp)
+    d2f = (df - dfp) / (z - zpp)
+
+    return z - (f(z) * df) / ((df**2) - f(z) * d2f)
 
 
 COLORS = [BLUE, GREEN_D, RED_D, PURPLE_D]
@@ -77,10 +85,12 @@ class NF(Slide):
 
         self.add(shader_obj)
 
-        def current_method(z: complex):
+        self.method = oilers
+
+        def current_method(z: complex, zp: complex, zpp: complex):
             f = shader_obj.polynomial()
             df = f.deriv()
-            return newtons(z, f=f, df=df)
+            return self.method(z, zp=zp, zpp=zpp, f=f, df=df, d2f=df.deriv())
 
         # fractal = gen_fractal_image(self.plane, roots=roots_num(), method=current_method)
 
@@ -97,19 +107,26 @@ class NF(Slide):
         self.next_slide()
 
         def make_path(z: complex):
-            values = [z]
+            values = [z - 2, z - 1, z]
 
-            for _ in range(40):
-                values.append(current_method(values[-1]))
+            for _ in range(100):
+                values.append(
+                    current_method(
+                        z=values[-1],
+                        zp=values[-2],
+                        zpp=values[-3],
+                    )
+                )
+            values = values[2:]
 
             points = [Dot(self.plane.n2p(z), radius=0.05) for z in values]
 
             lines = VGroup()
             for i in range(len(points) - 1):
                 line = Line(
-                    points[i].get_center(),
-                    points[i + 1].get_center(),
-                    stroke_width=4,
+                    start=points[i].get_center(),
+                    end=points[i + 1].get_center(),
+                    stroke_width=2,
                     color=BLUE,
                 )
                 lines.add(line)
@@ -132,6 +149,7 @@ class NF(Slide):
 
         z0_path = always_redraw(lambda: make_path(z0.get_value()))
         self.add(z0_marker, z0_path)
+        self.embed()
         self.next_slide(loop=True)
 
         for v, run_time in [

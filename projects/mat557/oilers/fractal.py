@@ -18,36 +18,24 @@ class FractalNewton(ShaderMobject):
     def __init__(
         self, roots, degree=3, scale_factor=1, colors=ROOT_COLORS_DEEP, **kwargs
     ):
-        super().__init__(shader_folder="newton", **kwargs)
+        super().__init__(shader_folder="newton", **kwargs, height=FRAME_HEIGHT * 10)
 
         self.roots = roots
         self.degree = degree
         self.scale_factor = scale_factor
 
-        self.f_always.set_uniforms(
-            lambda: {
-                "scale_factor": 1,
-                "color1": color_to_rgb(colors[0]),
-                "color2": color_to_rgb(colors[1]),
-                "color3": color_to_rgb(colors[2]),
-            }
-        )
+        self.uniforms["scale_factor"] = 1
+        for i, c in enumerate(colors):
+            self.uniforms[f"color{1 + i}"] = color_to_rgb(c)
         self.set_roots(roots)
 
     def set_roots(self, roots):
         self.roots = roots
         self.coefs = Polynomial.fromroots(self.roots).coef
-        self.set_uniforms(
-            {
-                "coef0": c2v(self.coefs[0]),
-                "coef1": c2v(self.coefs[1]),
-                "coef2": c2v(self.coefs[2]),
-                "coef3": c2v(self.coefs[3]),
-                "root1": c2v(self.roots[0]),
-                "root2": c2v(self.roots[1]),
-                "root3": c2v(self.roots[2]),
-            }
-        )
+        for i, c in enumerate(self.coefs):
+            self.uniforms[f"coef{i}"] = c2v(c)
+        for i, r in enumerate(self.roots):
+            self.uniforms[f"root{i + 1}"] = c2v(r)
 
     def polynomial(self):
         return Polynomial(self.coefs)

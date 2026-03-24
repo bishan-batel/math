@@ -18,7 +18,7 @@ uniform vec2 root1;
 uniform vec2 root2;
 uniform vec2 root3;
 
-uniform vec2 coefs[MAX_COEFS]
+uniform vec2 coefs[MAX_COEFS];
 
 in vec3 xyz_coords;
 
@@ -44,19 +44,62 @@ vec2 f(vec2 z) {
 // Derivative f'(z) = 3z^2
 vec2 df(vec2 z) {
     return 
-        3*mul(mul(z, z), coef3) +
-        2*mul(z, coef2) +
+        3.*mul(mul(z, z), coef3) +
+        2.*mul(z, coef2) +
         coef1;
+}
+
+vec2 d2f(vec2 z) {
+    return 
+        3.*2.*mul(z, coef3) +
+        2.*coef2;
+}
+
+vec2 newton(vec2 z) {
+    return z - div(f(z), df(z));
+}
+
+vec2 halley(vec2 z) {
+    return z - div(
+        mul(f(z), df(z)),
+        mul(df(z), df(z)) - 0.5f*mul(f(z), d2f(z))
+    );
+}
+
+vec2 oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
+    vec2 d = div(f(z)-f(zp), z - zp);
+    vec2 d_p = div(f(zp)-f(zpp), zp - zpp);
+
+    vec2 d2 = div(d - d_p, z - zpp);
+
+    vec2 next_z = z - div(
+        mul(f(z), d),
+        mul(d, d) - mul(f(z), d2)
+    );
+
+    zpp = zp;
+    zp = z;
+
+    return next_z;
 }
 
 void main() {
     vec2 z = xyz_coords.xy;
+    vec2 zp = z - vec2(1., 0.);
+    vec2 zpp = zp - vec2(1., 0.);
+
+    zpp = z;
+    zp = newton(zpp);
+    z = newton(zp);
+
     float iter = 0.0;
     const float maxIter = 100.0;
 
     // Newton-Raphson iteration
     for(float i = 0.0; i < maxIter; i++) {
-        z = z - div(f(z), df(z));
+        // z = newton(z);
+        // z = halley(z);
+        z = oiler(z, zp, zpp);
         iter = i;
         if(length(f(z)) < 0.0001) break;
     }
@@ -64,6 +107,7 @@ void main() {
     // Color based on which root it converged to
     float angle = atan(z.y, z.x);
     vec3 color = 0.5 + 0.5 * cos(angle + vec3(0.0, 2.0, 4.0)); // Color wheel
+    color = vec3(1., 1., 1.);
     
     // Darken based on iterations
 
@@ -72,9 +116,12 @@ void main() {
     float d2 = length(root2 - z);
     float d3 = length(root3 - z);
 
-    if (d1 < d2 && d1 < d3) color = color1;
-    if (d2 < d1 && d2 < d3) color = color2;
-    if (d3 < d2 && d3 < d1) color = color3;
+    if (any(isnan(z))) {
+        color = vec3(0., 0., 0.);
+    }
+    else if (d1 <= min(d2,d3)) color = color1;
+    else if (d2 <= min(d1,d3)) color = color2;
+    else if (d3 <= min(d1,d2)) color = color3;
 
     if (min(d1,min(d2,d3)) > 1E-3) {
         color = vec3(0.);
