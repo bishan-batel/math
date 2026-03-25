@@ -6,7 +6,7 @@ window:
   monitor_index: 0
   full_screen: false
 camera:
-  resolution: (3600, 2338)
+  resolution: (3024, 1964)
   background_color: "#000000"
   fps: 60
   background_opacity: 1.0

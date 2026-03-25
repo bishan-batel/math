@@ -29,7 +29,18 @@ def oilers(z: complex, f: Polynomial, zp: complex, zpp: complex, **kwargs):
     return z - (f(z) * df) / ((df * df) - f(zp) * d2f)
 
 
-METHOD_TO_MODE = {newtons: 0, halleys: 1, oilers: 2}
+# METHOD_TO_MODE = {newtons: 0, halleys: 1, oilers: 2}
+
+
+def method_to_mode(f):
+    if f.__name__ == newtons.__name__:
+        return 0
+    elif f.__name__ == halleys.__name__:
+        return 1
+    elif f.__name__ == oilers.__name__:
+        return 2
+    raise Exception("invalid mode ")
+
 
 COLORS = [BLUE, GREEN_D, RED_D, PURPLE_D]
 
@@ -69,7 +80,7 @@ class NF(Slide):
         # COEFFICIENTS = np.array([2, -2, 0, 1])
 
         def anim_stream(*zs):
-            if self.method == oilers:
+            if self.method.__name__ == oilers.__name__:
                 return zs
 
             # z = z_p[0] + 1j * z_p[1]
@@ -90,7 +101,7 @@ class NF(Slide):
         shader_obj.set_z_index(-20)
         shader_obj.f_always.set_scale_factor(lambda: scale_factor.get_value())
         shader_obj.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
-        shader_obj.f_always.set_mode(lambda: METHOD_TO_MODE[self.method])
+        shader_obj.f_always.set_mode(lambda: method_to_mode(self.method))
         self.add(shader_obj)
 
         def current_method(z: complex, zp: complex, zpp: complex):
@@ -122,7 +133,7 @@ class NF(Slide):
 
         def make_path(z: complex):
             values = [z]
-            if self.method == oilers:
+            if self.method.__name__ == oilers.__name__:
                 f = shader_obj.polynomial()
                 zpp = z
                 zp = zpp + ((1 + np.sqrt(5.0)) / 2.0)
@@ -135,7 +146,7 @@ class NF(Slide):
             for _ in range(100):
                 zp = None
                 zpp = None
-                if self.method == oilers:
+                if self.method.__name__ == oilers.__name__:
                     zp = values[-2]
                     zpp = values[-3]
 
@@ -159,6 +170,7 @@ class NF(Slide):
                 lines.add(line)
             lines.add(*points)
             return lines
+            # return path_line
 
         # initial value
         self.tracker = self.roots[0]
@@ -179,6 +191,8 @@ class NF(Slide):
 
         z0_path = always_redraw(lambda: make_path(z0.get_value()))
         self.add(z0_marker, z0_path)
+
+        self.embed()
 
         self.next_slide(loop=True)
 

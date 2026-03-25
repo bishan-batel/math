@@ -1,10 +1,10 @@
 #version 330
 precision highp float;
+precision highp vec2;
 
 #define MAX_COEFS 4
 
 uniform vec2 u_resolution;
-uniform float u_time;
 
 uniform int coeff_count;
 uniform vec3 color1;
@@ -18,15 +18,25 @@ uniform vec2 coef3;
 uniform vec2 root1;
 uniform vec2 root2;
 uniform vec2 root3;
+
 uniform vec2 z0;
 
 uniform int mode;
 
+uniform int color_mode;
+
 uniform vec2 coefs[MAX_COEFS];
+
+const int METHOD_NEWTON = 0;
+const int METHOD_HALLEY = 1;
+const int METHOD_OILER  = 2;
+
+const int COLOR_DOMAIN = 0;
+const int COLOR_LIMITING = 1;
 
 in vec3 xyz_coords;
 
-out vec4 fragColor;
+out vec4 frag_color;
 
 // Complex math helper functions
 vec2 mul(vec2 a, vec2 b) {
@@ -87,6 +97,7 @@ vec2 oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
 }
 
 const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
+const float EPSILON = 1E-5f;
 
 void main() {
     // vec2 z = xyz_coords.xy;
@@ -107,7 +118,7 @@ void main() {
     vec2 c = z;
 
     float iter = 0.0;
-    const float maxIter = 100.0;
+    const float maxIter = 5.0;
 
 
     vec2 mandelbrot = vec2(0.);
@@ -122,44 +133,30 @@ void main() {
             z = halley(z);
         } else if (mode == 2) {
             z = oiler(z, zp, zpp);
+            // if (length(z - zp) < EPSILON) break;
         }
 
-        if(length(f(z)) < 1E-5) break;
+        float d1 = length(root1 - z);
+        float d2 = length(root2 - z);
+        float d3 = length(root3 - z);
+        if (min(d1,min(d2,d3)) < EPSILON) break;
     }
 
     // z = xyz_coords.xy;
-    vec3 color = 0.5 + 0.5 * cos(atan(z.y, z.x) + vec3(0.0, 2.0, 4.0)); // Color wheel
-    // color = vec3(1.);
-    
-    float d1 = length(root1 - z);
-    float d2 = length(root2 - z);
-    float d3 = length(root3 - z);
+    vec3 color = vec3(1.);
 
-    if (min(d1,min(d2,d3)) > 1E-4 || any(isnan(z))) color = vec3(0.); else 
-        if (d1 <= min(d2,d3)) color = color1;
-    else if (d2 <= min(d1,d3)) color = color2;
-    else if (d3 <= min(d1,d2)) color = color3;
+    if (color_mode == COLOR_DOMAIN) {
+        color = 0.5 + 0.5 * cos(atan(z.y, z.x) + vec3(0.0, 2.0, 4.0)); // Color wheel
+    } else if (color_mode == COLOR_LIMITING) {
+        float d1 = length(root1 - z);
+        float d2 = length(root2 - z);
+        float d3 = length(root3 - z);
 
+        if (min(d1,min(d2,d3)) > EPSILON || any(isnan(z))) color = vec3(0.); else 
+            if (d1 <= min(d2,d3)) color = color1;
+        else if (d2 <= min(d1,d3)) color = color2;
+        else if (d3 <= min(d1,d2)) color = color3;
+    }
 
-    // if (length(z) < 2.f) {
-        // color = vec3(0.);
-    // } else {
-        // color = color1;
-    // }
-
-    // if (length(mandelbrot) < 2.f) {
-    //     color = color1;
-    // } else {
-    //     color = color2;
-    // }
-
-    // color *= iter / maxIter;
-    // color *= 0.0;
-
-    fragColor = vec4(color, 1.0);
-    // fragColor = vec4(c, sin(u_time), 1.0);
-    // fragColor = vec4(gl_FragCoord.xy, sin(u_time), 1.0);
-    // fragColor = vec4(0.0, 1.0, 1.0, 1.0);
-    //
-    // fragColor = vec4(xyz_coords.xy, sin(u_time),1.0);
+    frag_color = vec4(color, 1.0);
 }
