@@ -8,11 +8,6 @@ ROOT_COLORS_DEEP = ["#440154", "#3b528b", "#21908c", "#5dc963", "#29abca"]
 CUBIC_COLORS = [RED_E, TEAL_E, BLUE_E]
 
 
-MODE_NEWTON = 0
-MODE_HALLEY = 1
-MODE_OILER = 2
-
-
 def c2v(a: complex):
     return np.array([np.real(a), np.imag(a)])
 
@@ -29,16 +24,24 @@ class FractalNewton(ShaderMobject):
 
         for i, c in enumerate(colors):
             self.uniforms[f"color{1 + i}"] = np.array(color_to_rgb(c))
+
         self.set_roots(roots)
         self.set_scale_factor(1)
+        self.enable_limit_coloring()
 
     def set_scale_factor(self, factor: float):
         self.scale_factor = factor
         self.uniforms["scale_factor"] = factor
 
-    def set_mode(self, m: int = MODE_NEWTON):
+    def set_mode(self, m: int):
         self.mode = m
         self.uniforms["mode"] = self.mode
+
+    def enable_domain_coloring(self):
+        self.uniforms["color_mode"] = 0
+
+    def enable_limit_coloring(self):
+        self.uniforms["color_mode"] = 1
 
     def set_roots(self, roots):
         self.roots = roots

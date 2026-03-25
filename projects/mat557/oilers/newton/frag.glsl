@@ -2,9 +2,22 @@
 precision highp float;
 precision highp vec2;
 
-#define MAX_COEFS 4
+const int MAX_COEFS = 4;
+const int METHOD_NEWTON = 0;
+const int METHOD_HALLEY = 1;
+const int METHOD_YOUNG_OILER  = 2;
+const int METHOD_OILER  = 3;
 
-uniform vec2 u_resolution;
+const int COLOR_DOMAIN = 0;
+const int COLOR_LIMITING = 1;
+
+const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
+const float EPSILON = 1E-5f;
+
+const int MAX_ITERATIONS = 100;
+
+const vec3 INFINITY_COLOR = vec3(1.); 
+const vec3 CYCLE_COLOR = vec3(0.); 
 
 uniform int coeff_count;
 uniform vec3 color1;
@@ -25,27 +38,22 @@ uniform int mode;
 
 uniform int color_mode;
 
-uniform vec2 coefs[MAX_COEFS];
-
-const int METHOD_NEWTON = 0;
-const int METHOD_HALLEY = 1;
-const int METHOD_OILER  = 2;
-
-const int COLOR_DOMAIN = 0;
-const int COLOR_LIMITING = 1;
-
 in vec3 xyz_coords;
 
 out vec4 frag_color;
 
-// Complex math helper functions
-vec2 mul(vec2 a, vec2 b) {
-    return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
-}
+vec2 root_midpoint() { return (root1 + root2 + root3) / 3.; }
 
-vec2 div(vec2 a, vec2 b) {
-    return vec2(a.x * b.x + a.y * b.y, a.y * b.x - a.x * b.y) / dot(b, b);
-}
+// ======================
+//   Complex Operations
+// ======================
+
+// Complex math helper functions
+vec2 mul(vec2 a, vec2 b) { return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x); }
+
+vec2 div(vec2 a, vec2 b) { return vec2(a.x * b.x + a.y * b.y, a.y * b.x - a.x * b.y) / dot(b, b); }
+
+vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)): }
 
 vec2 f(vec2 z) {
     return 
@@ -69,8 +77,19 @@ vec2 d2f(vec2 z) {
         2.*coef2;
 }
 
+// ======================
+//         METHODS 
+// ======================
+
 vec2 newton(vec2 z) {
     return z - div(f(z), df(z));
+}
+
+vec2 deriv_newton(vec2 z) {
+    return div( 
+        mul(d2f(z), f(z)),
+        mul(df(z), df(z))
+    );
 }
 
 vec2 halley(vec2 z) {
@@ -80,7 +99,7 @@ vec2 halley(vec2 z) {
     );
 }
 
-vec2 oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
+vec2 young_oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
     vec2 d = div(f(z)-f(zp), z - zp);
     vec2 d_p = div(f(zp)-f(zpp), zp - zpp);
     vec2 d2 = div(d - d_p, z - zpp);
@@ -96,66 +115,83 @@ vec2 oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
     return next_z;
 }
 
-const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
-const float EPSILON = 1E-5f;
+vec2 oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
+    vec2 d = div(f(z)-f(zp), z - zp);
+    vec2 d_p = div(f(zp)-f(zpp), zp - zpp);
+    vec2 d2 = div(d - d_p, z - zpp);
+
+    vec2 next_z = z - div(
+        mul(f(z), d),
+        mul(d, d) - mul(f(z), d2)
+    );
+
+    zpp = zp;
+    zp = z;
+
+    return next_z;
+}
+
+float min_root_distance(vec2 z) {
+    float d1 = length(root1 - z);
+    float d2 = length(root2 - z);
+    float d3 = length(root3 - z);
+    return min(d1, min(d2, d3));
+}
+
+vec3 domain_color_complex(vec2 z) {
+    // return 0.5 + 0.5 * cos(atan(z.y, z.x) + vec3(0.0, 2.0, 4.0)) * length(z);
+    return cos(atan(z.y, z.x) + vec3(0.0, 2.0, 4.0)) * (length(z));
+}
+
+vec3 limit_color_complex(vec2 z) {
+    if (any(isnan(z)) || any(isinf(z))) return INFINITY_COLOR;
+    if (min_root_distance(z) > EPSILON) return CYCLE_COLOR;
+
+    float d1 = length(root1 - z);
+    float d2 = length(root2 - z);
+    float d3 = length(root3 - z);
+
+    if      (d1 <= min(d2,d3)) return color1;
+    else if (d2 <= min(d1,d3)) return color2;
+    else if (d3 <= min(d1,d2)) return color3;
+
+    return vec3(0.);
+}
 
 void main() {
-    // vec2 z = xyz_coords.xy;
-    // vec2 zp = z - vec2(1., 0.);
-    // vec2 zpp = zp - vec2(1., 0.);
-
+    vec2 pixel_z = xyz_coords.xy;
 
     vec2 zpp, zp, z;
 
-    if (mode == 2) {
-        zpp = xyz_coords.xy;
+    if (mode == METHOD_OILER || mode == METHOD_YOUNG_OILER) {
+        zpp = pixel_z;
         zp = zpp + vec2(GOLDEN_RATIO, 0.);
+        // zp = z0;
         z = zp - div(f(zp), div(f(zp)-f(zpp),zp - zpp));
     } else {
-        z = xyz_coords.xy;
+        z = pixel_z;
     }
 
     vec2 c = z;
 
     float iter = 0.0;
-    const float maxIter = 5.0;
+
+    for(; iter < int(MAX_ITERATIONS); iter++) {
+        if (mode == METHOD_NEWTON)           z = newton(z);
+        else if (mode == METHOD_HALLEY)      z = halley(z);
+        else if (mode == METHOD_YOUNG_OILER) z = young_oiler(z, zp, zpp);
+        else if (mode == METHOD_OILER)       z = oiler(z, zp, zpp);
 
 
-    vec2 mandelbrot = vec2(0.);
-
-    // Newton-Raphson iteration
-    for(; iter < maxIter; iter++) {
-        mandelbrot = mul(mandelbrot, mandelbrot) + c;
-        if (mode == 0) {
-            z = newton(z);
-            // z = mul(z,z) + z0;
-        } else if (mode == 1) {
-            z = halley(z);
-        } else if (mode == 2) {
-            z = oiler(z, zp, zpp);
-            // if (length(z - zp) < EPSILON) break;
-        }
-
-        float d1 = length(root1 - z);
-        float d2 = length(root2 - z);
-        float d3 = length(root3 - z);
-        if (min(d1,min(d2,d3)) < EPSILON) break;
+        if (min_root_distance(z) < EPSILON) break;
     }
 
-    // z = xyz_coords.xy;
     vec3 color = vec3(1.);
 
     if (color_mode == COLOR_DOMAIN) {
-        color = 0.5 + 0.5 * cos(atan(z.y, z.x) + vec3(0.0, 2.0, 4.0)); // Color wheel
+        color = domain_color_complex(z);
     } else if (color_mode == COLOR_LIMITING) {
-        float d1 = length(root1 - z);
-        float d2 = length(root2 - z);
-        float d3 = length(root3 - z);
-
-        if (min(d1,min(d2,d3)) > EPSILON || any(isnan(z))) color = vec3(0.); else 
-            if (d1 <= min(d2,d3)) color = color1;
-        else if (d2 <= min(d1,d3)) color = color2;
-        else if (d3 <= min(d1,d2)) color = color3;
+        color = limit_color_complex(z);
     }
 
     frag_color = vec4(color, 1.0);

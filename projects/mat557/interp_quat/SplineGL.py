@@ -1,3 +1,4 @@
+from math import degrees
 from typing import TypeAlias, cast, Callable
 
 import typing
@@ -5,10 +6,14 @@ import typing
 import manimlib as mn
 from manimlib import *  # pyright: ignore
 import numpy as np
-from numpy.typing import NDArray
 from pyquaternion import Quaternion
+from numpy.typing import NDArray
 
-# VectorND: TypeAlias = npt.NDArray[PointDType]
+import random
+
+
+def rand_ang():
+    return random.random() * 360
 
 
 def euler_to_quat(yaw: float, pitch: float, roll: float) -> Quaternion:
@@ -53,14 +58,14 @@ def parametric_create_splines(input: SplineInputPoints):
     d2s = (matrix * np.array(del2_x).transpose()).transpose()
     d2s = np.vstack([np.zeros((1, dim)), d2s, np.zeros((1, dim))])
 
-    def spline(i: int, t: float) -> NDArray:
+    def spline(i: int, t: float) -> np.ndarray:
         return (
             x[i]
             + t * del_x[i]
             + (1 / 6) * t * (t - 1) * (-del2_x[i] * (t - 2) + del2_x[i + 1] * (t + 1))
         )
 
-    def full(t: float) -> NDArray:
+    def full(t: float) -> np.ndarray:
         t = (t - max_t) / (max_t - min_t)
         idx_t = max(min(np.floor(t), n - 1), 0)
         return spline(idx_t, t - idx_t)
@@ -100,7 +105,7 @@ def create_splines(input: SplineInputPoints):
     d2y = np.linalg.matmul(matrix, del_m)
     d2y = np.vstack([np.zeros((1, dim)), d2y, np.zeros((1, dim))])
 
-    def spline(i: int, t: float) -> NDArray:
+    def spline(i: int, t: float) -> np.ndarray:
         return (
             y[i]
             + m[i] * (t - x[i])
@@ -116,7 +121,7 @@ def create_splines(input: SplineInputPoints):
             )
         )
 
-    def full(t: float) -> NDArray:
+    def full(t: float) -> np.ndarray:
         for i in range(0, n - 1):
             if t <= x[i + 1] and t >= x[i]:
                 return spline(i, t)
@@ -129,7 +134,7 @@ def create_splines(input: SplineInputPoints):
 
 class RotationRender(ThreeDScene):
     always_depth_test = True
-    splinegen: Callable[[SplineInputPoints], Callable[[float], NDArray]] = (
+    splinegen: Callable[[SplineInputPoints], Callable[[float], np.ndarray]] = (
         create_splines
     )
     spline_points: SplineInputPoints = [
@@ -155,8 +160,9 @@ class RotationRender(ThreeDScene):
                 Cube(
                     side_length=0.3,
                     color=BLUE,
+                    opacity=0.5,
                 )
-                .add(Line(start=ORIGIN, end=RIGHT * 0.5, color=BLUE))
+                .add(Line(start=ORIGIN, end=np.array(RIGHT) * 0.5, color=BLUE))
                 .apply_matrix(Quaternion(qspline(t)).rotation_matrix)
                 .move_to(pos)
             )
@@ -209,16 +215,17 @@ class RotationRender(ThreeDScene):
             # stroke_width=0.05,
             t_range=(QMIN_T, QMAX_T, 1e-2),
         )
+        curve.set_submobject_colors_by_gradient(*[BLUE, RED])
         self.add(curve)
 
         # self.interactive_embed()
-        def animate_t(value: float, run_time=(QMAX_T - QMIN_T) * 3):
+        def animate_t(value: float, run_time=(QMAX_T - QMIN_T) * 5):
             return t.animate(run_time=run_time, rate_func=linear).set_value(value)
 
         self.frame.set_phi(45 * DEG)
         self.frame.set_theta(40 * DEG)
         self.play(animate_t(QMAX_T))
-        self.embed()
+        # self.embed()
 
 
 class RotTrivial(RotationRender):
@@ -245,4 +252,11 @@ class RotAllDirs(RotationRender):
         (0.4, euler_to_quat(yaw=90, pitch=-30, roll=0).q),
         (0.8, euler_to_quat(yaw=35, pitch=-90, roll=30).q),
         (1.0, euler_to_quat(yaw=-140, pitch=-150, roll=-45).q),
+    ]
+
+
+class RotRand(RotationRender):
+    spline_points = [
+        (t / 2, euler_to_quat(yaw=rand_ang(), pitch=rand_ang(), roll=rand_ang()).q)
+        for t in range(6)
     ]

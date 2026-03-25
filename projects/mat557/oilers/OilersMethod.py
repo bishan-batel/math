@@ -11,52 +11,30 @@ import numpy as np
 from manim_slides.slide import Slide
 
 from projects.mat557.oilers.fractal import ROOT_COLORS_DEEP, FractalNewton, c2v
+from projects.mat557.oilers.methods import *
 
 
-def newtons(z: complex, f: Polynomial, df: Polynomial, **kargs):
-    return z - f(z) / df(z)
-
-
-def halleys(z: complex, f: Polynomial, df: Polynomial, d2f: Polynomial, **kwargs):
-    return z - (f(z) * df(z)) / ((df(z) ** 2) - 0.5 * f(z) * d2f(z))
-
-
-def oilers(z: complex, f: Polynomial, zp: complex, zpp: complex, **kwargs):
-    df = (f(z) - f(zp)) / (z - zp)
-    dfp = (f(zp) - f(zpp)) / (zp - zpp)
-    d2f = (df - dfp) / (z - zpp)
-
-    return z - (f(z) * df) / ((df * df) - f(zp) * d2f)
-
-
-# METHOD_TO_MODE = {newtons: 0, halleys: 1, oilers: 2}
-
-
-def method_to_mode(f):
-    if f.__name__ == newtons.__name__:
-        return 0
-    elif f.__name__ == halleys.__name__:
-        return 1
-    elif f.__name__ == oilers.__name__:
-        return 2
-    raise Exception("invalid mode ")
-
-
-COLORS = [BLUE, GREEN_D, RED_D, PURPLE_D]
+FIXED_POINT_EXAMPLES: list[tuple[complex, complex, complex]] = [
+    (
+        0.24299045366570837 + 1.061487013346528j,
+        2.536106612677487 - 2.453937060212436j,
+        -0.0687982322242251 - 3.1253909770756554j,
+    ),
+    (-1 + 1j, -1 - 1j, 1.9539),
+]
 
 
 class FirstTitle(Slide):
-    skip_reversing = True
+    # skip_reversing = True
 
     def construct(self):
-        text = Tex("Oilers' Method")
+        text = TexText("Dynamics of Householder Methods")
         self.next_slide()
-        self.play(FadeIn(text))
+        self.play(Write(text))
 
 
-class NF(Slide):
-    skip_reversing = True
-    trackers = []
+class Playground(Slide):
+    trackers: list[ComplexValueTracker] = []
 
     def construct(self):
         if not hasattr(self, "next_slide"):
@@ -80,7 +58,7 @@ class NF(Slide):
         # COEFFICIENTS = np.array([2, -2, 0, 1])
 
         def anim_stream(*zs):
-            if self.method.__name__ == oilers.__name__:
+            if is_oiler_fan(self.method):
                 return zs
 
             # z = z_p[0] + 1j * z_p[1]
@@ -90,9 +68,7 @@ class NF(Slide):
             return np.array([np.real(z), np.imag(z)])
 
         self.roots = [
-            ComplexValueTracker().set_value(root)
-            # for root in np.roots(DEFAULT_COEFFICIENTS[::-1])
-            for root in [-1 + 1j, -1 - 1j, 1.9539]
+            ComplexValueTracker().set_value(root) for root in FIXED_POINT_EXAMPLES[0]
         ]
 
         # Create a shader mobject (a self.plane with shader code)
@@ -119,8 +95,9 @@ class NF(Slide):
             Dot(
                 fill_color=ROOT_COLORS_DEEP[i],
                 stroke_color=BLACK,
-                stroke_width=5,
-                radius=0.10,
+                stroke_width=3,
+                opacity=0.5,
+                radius=0.05,
             )
             .set_z_index(5)
             .add_updater(root_updater(root))
@@ -133,7 +110,7 @@ class NF(Slide):
 
         def make_path(z: complex):
             values = [z]
-            if self.method.__name__ == oilers.__name__:
+            if is_oiler_fan(self.method):
                 f = shader_obj.polynomial()
                 zpp = z
                 zp = zpp + ((1 + np.sqrt(5.0)) / 2.0)
@@ -144,33 +121,21 @@ class NF(Slide):
             # values = [c]
 
             for _ in range(100):
-                zp = None
-                zpp = None
-                if self.method.__name__ == oilers.__name__:
+                zp = 0
+                zpp = 0
+                if is_oiler_fan(self.method):
                     zp = values[-2]
                     zpp = values[-3]
 
                 values.append(current_method(z=values[-1], zp=zp, zpp=zpp))
-                # values.append(values[-1] ** 2 + c)
 
-            # N(z) = z - f(z) / f'(z)
-            # N(N(z)) = z
-            # N(N(N(z))) = z
+            values = [self.plane.n2p(z) for z in values]
 
-            points = [Dot(self.plane.n2p(z), radius=0.03) for z in values]
-
-            lines = VGroup()
-            for i in range(len(points) - 1):
-                line = Line(
-                    start=points[i].get_center(),
-                    end=points[i + 1].get_center(),
-                    stroke_width=1.5,
-                    color=BLUE,
-                )
-                lines.add(line)
-            lines.add(*points)
-            return lines
-            # return path_line
+            return (
+                VMobject(stroke_width=1.5, color=BLUE)
+                .set_points_as_corners(values)
+                .add(*(Dot(z, radius=0.03) for z in values))
+            )
 
         # initial value
         self.tracker = self.roots[0]
