@@ -1,4 +1,17 @@
 set allow-duplicate-variables := true
+set working-directory := "./../../../"
 
-default:
-    uv run manimgl ./OilersMethod.py NF
+slides := "FirstTitle WhatIsNewtons WhatIsOilersMethod"
+
+default: playground
+
+playground scene="Playground": (gl "./playground.py" scene)
+
+gl file="./Slides.py" scene="":
+    uv run manimgl {{ justfile_dir() }}/{{ file }} {{ scene }}
+
+render:
+    uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }}
+
+present:
+    uv run manim-slides present {{ slides }}

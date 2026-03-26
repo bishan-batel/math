@@ -4,24 +4,29 @@ import os
 sys.path.append(os.getcwd())
 
 from manimlib import *  # pyright: ignore
+
 from manim_slides.slide import Slide
 from projects.mat557.oilers.common import *
 
 
 class FirstTitle(Slide):
-    # skip_reversing = True
-
     def construct(self):
         text = TexText("Dynamics of Householder Methods")
-        self.next_slide()
+
         self.play(Write(text))
+        self.next_slide()
+        self.play(text.animate().to_edge(TOP, DEFAULT_MOBJECT_TO_EDGE_BUFF))
+
+        # self.next_slide()
+        # self.wipe(UP, return_animation=True, current=[text])
+        self.next_slide()
 
 
 class WhatIsNewtons(Slide):
     def construct(self) -> None:
         newtons_tex = Tex(r"\mathcal N(z)", "=", "z", "-", r"\frac{f(z)}{f'(z)}")
 
-        self.play(Write(newtons_tex))
+        self.play(Write(newtons_tex, run_time=0.5))
 
         self.next_slide()
 
@@ -83,8 +88,6 @@ class WhatIsNewtons(Slide):
 
         self.embed(show_animation_progress=True)
 
-        # you on  unix you can just do man
-
 
 class WhatIsOilersMethod(Slide):
     def construct(self) -> None:
@@ -93,11 +96,11 @@ class WhatIsOilersMethod(Slide):
         oilers_tex = Tex(
             r"\mathcal{O}(z_{n+1})",
             r"=",
-            r"\frac{f(z)",
-            r"f[z_{n-1}, z_{n}] ",
-            r"}{ \left( ",
-            r"f[z_{n-1},z_{n}] \right)^{2} - f(z_n)f[z_{n-2}, z_n] ",
-            r"}",
+            r"\frac{f(z)"
+            + r"f[z_{n-1}, z_{n}] "
+            + r"}{ \left( "
+            + r"f[z_{n-1},z_{n}] \right)^{2} - f(z_n)f[z_{n-2}, z_n] "
+            + r"}",
         )
 
         self.play(Write(oilers_tex))
