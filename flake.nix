@@ -27,6 +27,8 @@
                 cairo
                 ffmpeg 
                 just
+                shader-slang
+                spirv-cross
               ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
 
               buildInputs = with pkgs; [ 
