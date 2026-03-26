@@ -5,9 +5,9 @@ slides := "FirstTitle WhatIsNewtons WhatIsOilersMethod"
 
 default: playground
 
-playground scene="Playground": (gl "./playground.py" scene)
+playground scene="Playground": (gl scene "./playground.py")
 
-gl file="./Slides.py" scene="":
+gl scene="" file="./Slides.py":
     uv run manimgl {{ justfile_dir() }}/{{ file }} {{ scene }}
 
 render:
