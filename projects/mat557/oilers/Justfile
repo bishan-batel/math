@@ -5,13 +5,15 @@ slides := "FirstTitle WhatIsNewtons WhatIsOilersMethod"
 
 default: playground
 
-playground scene="Playground": (gl scene "./playground.py")
+playground scene="Playground":
+    @echo $(pwd)
+    @uv run manimgl "{{ justfile_dir() }}/playground.py" {{ scene }}
 
-gl scene="" file="./Slides.py":
-    uv run manimgl {{ justfile_dir() }}/{{ file }} {{ scene }}
+@gl file="Slides.py" scene="":
+    @uv run manimgl "{{ justfile_dir() }}/{{ file }}" {{ scene }}
 
-render:
-    uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }}
+@render:
+    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }}
 
-present:
-    uv run manim-slides present {{ slides }}
+@present:
+    @uv run manim-slides present {{ slides }}

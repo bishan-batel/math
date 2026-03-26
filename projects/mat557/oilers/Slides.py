@@ -3,6 +3,7 @@ import os
 
 sys.path.append(os.getcwd())
 
+from manim import ZoomedScene
 from manimlib import *  # pyright: ignore
 
 from manim_slides.slide import Slide
@@ -14,11 +15,13 @@ class FirstTitle(Slide):
         text = TexText("Dynamics of Householder Methods")
 
         self.play(Write(text))
-        self.next_slide()
-        self.play(text.animate().to_edge(TOP, DEFAULT_MOBJECT_TO_EDGE_BUFF))
 
-        # self.next_slide()
-        # self.wipe(UP, return_animation=True, current=[text])
+        author = Text("Kishan S Patel").next_to(text, BOTTOM).set_opacity(0)
+        self.play(
+            FadeIn(author),
+            author.animate.next_to(text, BOTTOM),
+            author.animate.set_opacity(1),
+        )
         self.next_slide()
 
 
