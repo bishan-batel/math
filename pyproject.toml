@@ -13,8 +13,7 @@ dependencies = [
     "setuptools>=80.0.0",
 ]
 
-[tool.setuptools]
-py-modules = ['custom']
+[tool.uv]
 
 [tool.pyright]
 venvPath = "."

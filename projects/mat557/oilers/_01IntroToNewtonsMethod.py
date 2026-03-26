@@ -1,0 +1,110 @@
+import sys
+import os
+
+sys.path.append(os.getcwd())
+
+from manimlib import *  # pyright: ignore
+from manim_slides.slide import Slide
+from projects.mat557.oilers.common import *
+
+
+class FirstTitle(Slide):
+    # skip_reversing = True
+
+    def construct(self):
+        text = TexText("Dynamics of Householder Methods")
+        self.next_slide()
+        self.play(Write(text))
+
+
+class WhatIsNewtons(Slide):
+    def construct(self) -> None:
+        newtons_tex = Tex(r"\mathcal N(z)", "=", "z", "-", r"\frac{f(z)}{f'(z)}")
+
+        self.play(Write(newtons_tex))
+
+        self.next_slide()
+
+        axes = Axes()
+        axes.add_coordinate_labels()
+
+        poly = Polynomial(coef=[2, -1, 4, -2]) * 0.1
+
+        func = axes.get_graph(function=poly)
+
+        self.play(newtons_tex.animate.to_corner(UL), ShowCreation(axes))
+        self.play(ShowCreation(func))
+
+        x_n = ValueTracker(1)
+
+        self.next_slide()
+
+        self.play(
+            ShowCreation(
+                always_redraw(
+                    lambda: VGroup(
+                        axes.get_v_line_to_graph(x_n.get_value(), func, color=GREY),
+                        Dot(axes.x_axis.n2p(x_n.get_value()), color=BLUE),
+                        Dot(func.get_point_from_function(x_n.get_value())),
+                    )
+                )
+            )
+        )
+
+        def one_step(speed: float = 0.8):
+            x = x_n.get_value()
+            f_x = poly(x)
+            m = poly.deriv()(x)
+
+            line_func = axes.get_graph(
+                function=lambda t: m * (t - x) + f_x, color=RED, opacity=0.8
+            )
+            line = line_func
+            self.play(ShowCreation(line, run_time=speed))
+
+            next_x = x - f_x / poly.deriv()(x)
+
+            intersection = Dot(line_func.get_point_from_function(next_x), color=RED)
+
+            self.play(ShowCreation(intersection, run_time=speed / 2))
+            self.play(x_n.animate(run_time=speed).set_value(next_x))
+            self.play(
+                FadeOut(line, run_time=speed),
+                FadeOut(intersection, run_time=speed),
+            )
+            self.remove(line, intersection)
+
+        one_step()
+        self.embed()
+        self.wait(1)
+        one_step()
+        self.wait(1)
+        one_step()
+
+        self.embed(show_animation_progress=True)
+
+        # you on  unix you can just do man
+
+
+class WhatIsOilersMethod(Slide):
+    def construct(self) -> None:
+        self.next_slide()
+
+        oilers_tex = Tex(
+            r"\mathcal{O}(z_{n+1})",
+            r"=",
+            r"\frac{f(z)",
+            r"f[z_{n-1}, z_{n}] ",
+            r"}{ \left( ",
+            r"f[z_{n-1},z_{n}] \right)^{2} - f(z_n)f[z_{n-2}, z_n] ",
+            r"}",
+        )
+
+        self.play(Write(oilers_tex))
+        self.embed(close_scene_on_exit=False, show_animation_progress=True)
+
+
+# df = (f(z) - f(zp)) / (z - zp)
+# dfp = (f(zp) - f(zpp)) / (zp - zpp)
+# d2f = (df - dfp) / (z - zpp)
+# return z - (f(z) * df) / ((df * df) - f(z) * d2f)

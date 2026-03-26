@@ -30,8 +30,6 @@ def is_oiler_fan(f):
     return f.__name__ == oilers.__name__ or f.__name__ == young_oilers.__name__
 
 
-# METHOD_TO_MODE = {newtons: 0, halleys: 1, oilers: 2}
-
 ALL_METHODS = [newtons, halleys, young_oilers, oilers]
 
 

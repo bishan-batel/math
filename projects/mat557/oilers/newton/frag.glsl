@@ -14,7 +14,10 @@ const int COLOR_LIMITING = 1;
 const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
 const float EPSILON = 1E-5f;
 
-const int MAX_ITERATIONS = 100;
+// #define vec2 dvec2
+// #define float double
+
+const uint MAX_ITERATIONS = 100u;
 
 const vec3 INFINITY_COLOR = vec3(1.); 
 const vec3 CYCLE_COLOR = vec3(0.); 
@@ -53,7 +56,7 @@ vec2 mul(vec2 a, vec2 b) { return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * 
 
 vec2 div(vec2 a, vec2 b) { return vec2(a.x * b.x + a.y * b.y, a.y * b.x - a.x * b.y) / dot(b, b); }
 
-vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)): }
+vec2 c_exp(vec2 z) { return exp(z.x) * vec2(cos(z.y), sin(z.y)); }
 
 vec2 f(vec2 z) {
     return 
@@ -174,15 +177,11 @@ void main() {
 
     vec2 c = z;
 
-    float iter = 0.0;
-
-    for(; iter < int(MAX_ITERATIONS); iter++) {
+    for(uint i = 0u; i < float(MAX_ITERATIONS); i++) {
         if (mode == METHOD_NEWTON)           z = newton(z);
         else if (mode == METHOD_HALLEY)      z = halley(z);
         else if (mode == METHOD_YOUNG_OILER) z = young_oiler(z, zp, zpp);
         else if (mode == METHOD_OILER)       z = oiler(z, zp, zpp);
-
-
         if (min_root_distance(z) < EPSILON) break;
     }
 

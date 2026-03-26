@@ -12,25 +12,7 @@ from manim_slides.slide import Slide
 
 from projects.mat557.oilers.fractal import ROOT_COLORS_DEEP, FractalNewton, c2v
 from projects.mat557.oilers.methods import *
-
-
-FIXED_POINT_EXAMPLES: list[tuple[complex, complex, complex]] = [
-    (
-        0.24299045366570837 + 1.061487013346528j,
-        2.536106612677487 - 2.453937060212436j,
-        -0.0687982322242251 - 3.1253909770756554j,
-    ),
-    (-1 + 1j, -1 - 1j, 1.9539),
-]
-
-
-class FirstTitle(Slide):
-    # skip_reversing = True
-
-    def construct(self):
-        text = TexText("Dynamics of Householder Methods")
-        self.next_slide()
-        self.play(Write(text))
+from projects.mat557.oilers.common import *
 
 
 class Playground(Slide):
