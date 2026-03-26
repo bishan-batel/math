@@ -56,6 +56,14 @@
                   gst_all_1.gst-plugins-good
                   gst_all_1.gst-plugins-bad
                   gst_all_1.gst-libav
+                  libglvnd
+                  libGL
+                  libGLU
+                  alsa-lib
+                  libxkbcommon 
+                  wayland-protocols
+                  wayland
+                  xorg.libxcb
                 ]);
 
               env = if pkgs.stdenv.isDarwin then {
