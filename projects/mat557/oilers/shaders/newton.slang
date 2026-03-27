@@ -39,6 +39,8 @@ uniform int color_mode;
 
 in float3 xyz_coords;
 
+class complex {}
+
 float2 root_midpoint() { return (root1 + root2 + root3) / 3.; }
 
 // ======================

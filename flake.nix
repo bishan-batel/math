@@ -29,6 +29,7 @@
                 just
                 shader-slang
                 spirv-cross
+                glslang
               ] ++ pkgs.lib.optional pkgs.stdenv.isDarwin [ apple ];
 
               buildInputs = with pkgs; [ 

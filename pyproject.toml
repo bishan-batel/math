@@ -11,6 +11,7 @@ dependencies = [
     "manimgl>=1.7.2",
     "pyquaternion>=0.9.9",
     "setuptools>=80.0.0",
+    "slangpy>=0.40.1",
 ]
 
 [tool.uv]

@@ -3,10 +3,10 @@ import os
 
 sys.path.append(os.getcwd())
 
-from manim import ZoomedScene
+from manim_slides.slide import Slide
+from custom.shader_obj import SlangShaderMobject
 from manimlib import *  # pyright: ignore
 
-from manim_slides.slide import Slide
 from projects.mat557.oilers.common import *
 
 
@@ -23,6 +23,13 @@ class FirstTitle(Slide):
             author.animate.set_opacity(1),
         )
         self.next_slide()
+
+        obj = SlangShaderMobject(
+            shader_file="projects/mat557/oilers/shaders/example.slang"
+        )
+        self.add(obj)
+        obj.refresh()
+        self.embed()
 
 
 class WhatIsNewtons(Slide):
