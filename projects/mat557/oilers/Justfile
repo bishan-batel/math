@@ -1,5 +1,6 @@
 set allow-duplicate-variables := true
-set working-directory := "./../../../"
+
+# set working-directory := "./../../../"
 
 slides := "FirstTitle WhatIsNewtons WhatIsOilersMethod"
 

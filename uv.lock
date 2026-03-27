@@ -316,7 +316,7 @@ wheels = [
 [[package]]
 name = "holomorphic"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "ipython" },
     { name = "manim-slides", extra = ["magic", "manimgl", "pyside6"] },

@@ -6,3 +6,4 @@
 *.gif
 *.mp4
 .venv/
+*.egginfo/

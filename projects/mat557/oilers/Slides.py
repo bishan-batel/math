@@ -1,7 +1,6 @@
 import sys
 import os
 
-sys.path.append(os.getcwd())
 
 from manim_slides.slide import Slide
 from custom.shader_obj import SlangShaderMobject
@@ -24,15 +23,12 @@ class FirstTitle(Slide):
         )
         self.next_slide()
 
-        obj = SlangShaderMobject(
-            shader_file="projects/mat557/oilers/shaders/example.slang"
-        )
-        self.add(obj)
-        obj.refresh()
         self.embed()
 
 
 class WhatIsNewtons(Slide):
+    poly = Polynomial(coef=[2, -1, 4, -2]) * 0.1
+
     def construct(self) -> None:
         newtons_tex = Tex(r"\mathcal N(z)", "=", "z", "-", r"\frac{f(z)}{f'(z)}")
 
@@ -43,9 +39,7 @@ class WhatIsNewtons(Slide):
         axes = Axes()
         axes.add_coordinate_labels()
 
-        poly = Polynomial(coef=[2, -1, 4, -2]) * 0.1
-
-        func = axes.get_graph(function=poly)
+        func = axes.get_graph(function=self.poly)
 
         self.play(newtons_tex.animate.to_corner(UL), ShowCreation(axes))
         self.play(ShowCreation(func))
@@ -68,8 +62,8 @@ class WhatIsNewtons(Slide):
 
         def one_step(speed: float = 0.8):
             x = x_n.get_value()
-            f_x = poly(x)
-            m = poly.deriv()(x)
+            f_x = self.poly(x)
+            m = self.poly.deriv()(x)
 
             line_func = axes.get_graph(
                 function=lambda t: m * (t - x) + f_x, color=RED, opacity=0.8
@@ -77,7 +71,7 @@ class WhatIsNewtons(Slide):
             line = line_func
             self.play(ShowCreation(line, run_time=speed))
 
-            next_x = x - f_x / poly.deriv()(x)
+            next_x = x - f_x / self.poly.deriv()(x)
 
             intersection = Dot(line_func.get_point_from_function(next_x), color=RED)
 
@@ -96,7 +90,7 @@ class WhatIsNewtons(Slide):
         self.wait(1)
         one_step()
 
-        self.embed(show_animation_progress=True)
+        self.embed(show_animation_progress=False)
 
 
 class WhatIsOilersMethod(Slide):

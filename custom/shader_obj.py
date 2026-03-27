@@ -40,7 +40,7 @@ def compile_slang_to_glsl(shader_file, entry, stage):
             # "--glsl-emit-ubo-as-plain-uniforms",
             # # "--glsl-force-flattened-io-blocks",
             # "--flatten-ubo",
-            "--es",
+            # "--es",
             "--output",
             glsl_output,
         ]

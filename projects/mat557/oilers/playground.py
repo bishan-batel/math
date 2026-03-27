@@ -1,8 +1,6 @@
 import sys
 import os
 
-sys.path.append(os.getcwd())
-
 from custom.shader_obj import *
 
 from manimlib import *  # pyright: ignore

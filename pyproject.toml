@@ -14,7 +14,8 @@ dependencies = [
     "slangpy>=0.40.1",
 ]
 
-[tool.uv]
+[tool.setuptools]
+py-modules = [ "custom", "projects" ]
 
 [tool.pyright]
 venvPath = "."
@@ -28,6 +29,9 @@ reportOperatorIssue = "warning"
 [tool.ruff.lint]
 exclude = []
 extend-ignore = ["F401", "F403", "F405"]
+
+[tool.uv]
+package = true
 
 [tool.uv.workspace]
 members = [
