@@ -16,7 +16,10 @@ class FractalNewton(ShaderMobject):
     def __init__(
         self, roots, degree=3, scale_factor=1, colors=ROOT_COLORS_DEEP, **kwargs
     ):
-        super().__init__(shader_folder="projects/mat557/oilers/newton", **kwargs)
+        from pathlib import Path
+
+        dir = f"{Path(__file__).resolve().parent}/newton"
+        super().__init__(shader_folder=dir, **kwargs)
 
         self.roots = roots
         self.degree = degree

@@ -17,13 +17,6 @@ class Playground(Slide):
     trackers: list[ComplexValueTracker] = []
 
     def construct(self):
-        if not hasattr(self, "next_slide"):
-
-            def next_slide(**kargs):
-                pass
-
-            self.next_slide = next_slide
-
         self.plane = (
             ComplexPlane(x_range=(-5, 5), y_range=(-6, 6), faded_line_ratio=2)
             .add_coordinate_labels()

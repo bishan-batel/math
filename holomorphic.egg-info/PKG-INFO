@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: holomorphic
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: ==3.13
+Description-Content-Type: text/markdown
+Requires-Dist: ipython>=9.10.0
+Requires-Dist: manim-slides[magic,manimgl,pyside6]>=5.5.4
+Requires-Dist: manimgl>=1.7.2
+Requires-Dist: pyquaternion>=0.9.9
+Requires-Dist: setuptools>=80.0.0
+Requires-Dist: slangpy>=0.40.1

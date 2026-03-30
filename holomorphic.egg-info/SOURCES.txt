@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+holomorphic.egg-info/PKG-INFO
+holomorphic.egg-info/SOURCES.txt
+holomorphic.egg-info/dependency_links.txt
+holomorphic.egg-info/requires.txt
+holomorphic.egg-info/top_level.txt

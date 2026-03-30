@@ -3,7 +3,6 @@ import os
 
 
 from manim_slides.slide import Slide
-from custom.shader_obj import SlangShaderMobject
 from manimlib import *  # pyright: ignore
 
 from projects.mat557.oilers.common import *
@@ -27,7 +26,7 @@ class FirstTitle(Slide):
 
 
 class WhatIsNewtons(Slide):
-    poly = Polynomial(coef=[2, -1, 4, -2]) * 0.1
+    poly: Polynomial = SIMPLE_POLY_EXAMPLES[0]
 
     def construct(self) -> None:
         newtons_tex = Tex(r"\mathcal N(z)", "=", "z", "-", r"\frac{f(z)}{f'(z)}")
@@ -39,26 +38,25 @@ class WhatIsNewtons(Slide):
         axes = Axes()
         axes.add_coordinate_labels()
 
-        func = axes.get_graph(function=self.poly)
+        func = axes.get_graph(function=lambda t: self.poly(t), bind=True)
 
-        self.play(newtons_tex.animate.to_corner(UL), ShowCreation(axes))
+        self.play(newtons_tex.animate.scale(0.8).to_corner(DL), ShowCreation(axes))
         self.play(ShowCreation(func))
 
         x_n = ValueTracker(1)
 
         self.next_slide()
 
-        self.play(
-            ShowCreation(
-                always_redraw(
-                    lambda: VGroup(
-                        axes.get_v_line_to_graph(x_n.get_value(), func, color=GREY),
-                        Dot(axes.x_axis.n2p(x_n.get_value()), color=BLUE),
-                        Dot(func.get_point_from_function(x_n.get_value())),
-                    )
-                )
+        x_n_marker = always_redraw(
+            lambda: VGroup(
+                axes.get_v_line_to_graph(x_n.get_value(), func, color=GREY),
+                Dot(axes.x_axis.n2p(x_n.get_value()), color=BLUE),
+                Dot(func.get_point_from_function(x_n.get_value())),
             )
         )
+
+        func.add(x_n_marker)
+        self.play(FadeIn(x_n_marker))
 
         def one_step(speed: float = 0.8):
             x = x_n.get_value()
@@ -69,7 +67,7 @@ class WhatIsNewtons(Slide):
                 function=lambda t: m * (t - x) + f_x, color=RED, opacity=0.8
             )
             line = line_func
-            self.play(ShowCreation(line, run_time=speed))
+            self.play(ShowCreation(line, lag_ratio=0.5, run_time=speed))
 
             next_x = x - f_x / self.poly.deriv()(x)
 
@@ -84,11 +82,28 @@ class WhatIsNewtons(Slide):
             self.remove(line, intersection)
 
         one_step()
-        self.embed()
         self.wait(1)
         one_step()
         self.wait(1)
         one_step()
+
+        # self.play(FadeOut(func))
+        self.poly = Polynomial(np.array([1, -5, 0, 5]))
+
+        self.play(
+            TransformMatchingTex(
+                newtons_tex,
+                Tex(
+                    r"\mathcal H(z)",
+                    "=",
+                    "z",
+                    "-",
+                    r"\frac{f(z)f'(z)}{ f'(z)^2 + \frac{1}{2}f(z)f''(z) }",
+                )
+                .scale(0.8)
+                .to_corner(DL),
+            )
+        )
 
         self.embed(show_animation_progress=False)
 
