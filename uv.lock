@@ -324,6 +324,7 @@ dependencies = [
     { name = "pyquaternion" },
     { name = "setuptools" },
     { name = "slangpy" },
+    { name = "sympy" },
 ]
 
 [package.metadata]
@@ -334,6 +335,7 @@ requires-dist = [
     { name = "pyquaternion", specifier = ">=0.9.9" },
     { name = "setuptools", specifier = ">=80.0.0" },
     { name = "slangpy", specifier = ">=0.40.1" },
+    { name = "sympy", specifier = ">=1.14.0" },
 ]
 
 [[package]]

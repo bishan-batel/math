@@ -10,3 +10,4 @@ Requires-Dist: manimgl>=1.7.2
 Requires-Dist: pyquaternion>=0.9.9
 Requires-Dist: setuptools>=80.0.0
 Requires-Dist: slangpy>=0.40.1
+Requires-Dist: sympy>=1.14.0
