@@ -13,9 +13,10 @@ class FirstTitle(Slide):
     def construct(self):
         text = TexText("Dynamics of Householder Methods")
 
-        self.play(Write(text))
+        self.play(FadeIn(text))
 
         author = Text("Kishan S Patel").next_to(text, BOTTOM).set_opacity(0)
+
         self.play(
             FadeIn(author),
             author.animate.next_to(text, BOTTOM),
@@ -23,7 +24,8 @@ class FirstTitle(Slide):
         )
         self.next_slide()
 
-        self.embed()
+        # self.embed()
+        self.clear()
 
 
 class WhatIsNewtons(Slide):
@@ -172,14 +174,16 @@ class NewtonCubic(Slide):
             "f(z)",
             "=",
             "d",
-            "(x-r_1)",
-            "(x-r_2)",
-            "(x-r_3)",
+            "(x-r_{1})",
+            "(x-r_{2})",
+            "(x-r_{3})",
             isolate=to_isolate,
             t2c=colors,
         )
 
-        sym_df = simplify(Derivative(Symbol("d") * cubic(z), z, evaluate=True))
+        sym_df = simplify(
+            Derivative(Symbol("d") * cubic(z), z, evaluate=True), ratio=oo
+        )
         factored_cubic_deriv = Tex(
             "f'(z)",
             "=",
@@ -189,7 +193,7 @@ class NewtonCubic(Slide):
         )
 
         newtons_method = Tex(
-            "N(z)",
+            "\\mathcal N(z)",
             "=",
             "z",
             "-",
@@ -223,7 +227,7 @@ class NewtonCubic(Slide):
         sym_f = simplify(Symbol("d") * (z - r1) * (z - r2) * (z - r3))
 
         newtons_method_substituted = Tex(
-            "N(z)",
+            "\\mathcal{N}(z)",
             "=",
             latex(z - sym_f / sym_df),
             isolate=to_isolate,
@@ -259,7 +263,7 @@ class NewtonCubic(Slide):
         equation = simplify(z - cubic(z) / Derivative(cubic(z), z, evaluate=True))
 
         newtons_s2 = Tex(
-            "N(z)",
+            "\\mathcal{N}(z)",
             "=",
             latex(equation),
             isolate=to_isolate,
@@ -270,13 +274,14 @@ class NewtonCubic(Slide):
             TransformMatchingTex(
                 newtons_method_substituted,
                 newtons_s2,
+                path_arc=10 * DEGREES,
             ),
             self.frame.animate.scale(1.3),
         )
 
         equation = factor(equation, deep=True)
         newtons_3 = Tex(
-            "N(z)",
+            "\\mathcal{N}(z)",
             "=",
             latex(equation),
             isolate=to_isolate,
@@ -287,6 +292,7 @@ class NewtonCubic(Slide):
             TransformMatchingTex(
                 newtons_s2,
                 newtons_3,
+                path_arc=10 * DEGREES,
             ),
             self.frame.animate.scale(0.7),
         )
@@ -298,7 +304,7 @@ class NewtonCubic(Slide):
         # eq_div = numer(eq_div) / factor(denom(eq_div), deep=True)
 
         newtons_deriv = Tex(
-            "N'(z)",
+            "\\mathcal{N}'(z)",
             "=",
             latex(eq_div),
             isolate=to_isolate,
@@ -308,13 +314,12 @@ class NewtonCubic(Slide):
             TransformMatchingTex(
                 newtons_3,
                 newtons_deriv,
+                path_arc=10 * DEGREES,
             ),
             self.frame.animate.scale(1.0),
         )
 
         eq_roots = ((r) for r in dict.keys(roots(numer((eq_div)), z)))
-
-        self.embed()
 
         self.next_slide()
         self.play(
@@ -323,6 +328,45 @@ class NewtonCubic(Slide):
             ),
             FadeOut(newtons_deriv),
         )
+
+
+# SYM_CUBIC_FN = (
+#     (Symbol("z") - Symbol("r_1"))
+#     * (Symbol("z") - Symbol("r_2"))
+#     * (Symbol("z") - Symbol("r_3"))
+# )
+#
+# SYM_CUBIC_FN_DERIV = simplify(Derivative(SYM_CUBIC_FN, evaluate=True), ratio=oo)
+#
+# SYM_NEWTONS = Symbol("z") - Function("f")(Symbol("z")) / Derivative(
+#     Function("f")(Symbol("z")), Symbol("z")
+# )
+#
+# SYM_NEWTONS_CUBIC = Symbol("z") - SYM_CUBIC_FN / SYM_CUBIC_FN_DERIV
+# SYM_NEWTONS_CUBIC_DERIV = simplify(
+#     factor(Derivative(SYM_NEWTONS_CUBIC, Symbol("z"), evaluate=True), deep=True),
+#     ratio=oo,
+# )
+
+
+class MontelsThereom(Slide):
+    def construct(self) -> None:
+        self.next_slide()
+
+        title = TexText("\\emph{Montels Thereom}").center()
+        self.play(Write(title))
+
+        self.next_slide()
+
+        montel_desc = TexText(
+            r"A family of holomorphic functions $\mathcal{F}: U \to \mathbb{C} \setminus \{a, b\}, U \subseteq{\mathbb{C}}$",
+            " is normal",
+            font_size=34,
+            isolate=["\\mathbb{C}"],
+            t2c={"normal": RED, "\\mathbb{C}": RED},
+        ).center()
+
+        self.play(Write(montel_desc), title.animate.next_to(montel_desc, UP))
 
 
 class WhatIsOilersMethod(Slide):

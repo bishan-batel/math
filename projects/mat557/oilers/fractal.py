@@ -13,20 +13,17 @@ def c2v(a: complex):
 
 
 class FractalNewton(ShaderMobject):
-    def __init__(
-        self, roots, degree=3, scale_factor=1, colors=ROOT_COLORS_DEEP, **kwargs
-    ):
+    def __init__(self, roots, scale_factor=1, colors=ROOT_COLORS_DEEP, **kwargs):
         from pathlib import Path
 
         dir = f"{Path(__file__).resolve().parent}/newton"
         super().__init__(shader_folder=dir, **kwargs)
 
         self.roots = roots
-        self.degree = degree
         self.scale_factor = scale_factor
 
         for i, c in enumerate(colors):
-            self.uniforms[f"color{1 + i}"] = np.array(color_to_rgb(c))
+            self.uniforms[f"u_color{1 + i}"] = np.array(color_to_rgb(c))
 
         self.set_roots(roots)
         self.set_scale_factor(1)
@@ -38,21 +35,22 @@ class FractalNewton(ShaderMobject):
 
     def set_mode(self, m: int):
         self.mode = m
-        self.uniforms["mode"] = self.mode
+        self.uniforms["u_mode"] = self.mode
 
     def enable_domain_coloring(self):
-        self.uniforms["color_mode"] = 0
+        self.uniforms["u_color_mode"] = 0
 
     def enable_limit_coloring(self):
-        self.uniforms["color_mode"] = 1
+        self.uniforms["u_color_mode"] = 1
 
     def set_roots(self, roots):
         self.roots = roots
-        self.coefs = Polynomial.fromroots(self.roots).coef
-        for i, c in enumerate(self.coefs):
-            self.uniforms[f"coef{i}"] = c2v(c)
+
         for i, r in enumerate(self.roots):
-            self.uniforms[f"root{i + 1}"] = c2v(r)
+            self.uniforms[f"u_root{i + 1}"] = c2v(r)
+
+    def set_z0(self, z0: complex):
+        self.uniforms["u_z0"] = c2v(z0)
 
     def polynomial(self):
-        return Polynomial(self.coefs)
+        return Polynomial.fromroots(self.roots)

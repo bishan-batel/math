@@ -82,6 +82,8 @@ class Playground(Slide):
         self.next_slide()
 
         def make_path(z: complex):
+            self.z0.set_value(sum(r.get_value() for r in self.roots) / 3.0)
+
             values = [z]
             if is_oiler_fan(self.method):
                 f = shader_obj.polynomial()
@@ -112,12 +114,11 @@ class Playground(Slide):
 
         # initial value
         self.tracker = self.roots[0]
-        z0 = ComplexValueTracker()
-        z0.set_value(1j)
 
+        z0 = ComplexValueTracker()
         self.z0 = z0
 
-        shader_obj.f_always.set_uniforms(lambda: {"z0": c2v(self.z0.get_value())})
+        shader_obj.f_always.set_z0(lambda: self.z0.get_value())
 
         z0_marker = (
             Tex("z_0")
