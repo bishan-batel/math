@@ -2,7 +2,7 @@ set allow-duplicate-variables := true
 
 # set working-directory := "./../../../"
 
-slides := "FirstTitle WhatIsNewtons WhatIsOilersMethod"
+slides := "FirstTitle WhatIsNewtons NewtonCubic MontelsThereom WhatIsOilersMethod"
 
 default: playground
 
@@ -13,8 +13,14 @@ playground scene="Playground":
 @gl file="Slides.py" scene="":
     @uv run manimgl "{{ justfile_dir() }}/{{ file }}" {{ scene }}
 
-@render:
+@render slides=slides:
     @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }}
+
+@renderm slides=slides:
+    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} -m
+
+@renderl slides=slides:
+    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} -l
 
 @present:
     @uv run manim-slides present {{ slides }}

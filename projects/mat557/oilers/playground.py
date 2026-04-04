@@ -30,16 +30,6 @@ class Playground(Slide):
         # DEFAULT_COEFFICIENTS = np.array([-5, 4, 0, 1])
         # COEFFICIENTS = np.array([2, -2, 0, 1])
 
-        def anim_stream(*zs):
-            if is_oiler_fan(self.method):
-                return zs
-
-            # z = z_p[0] + 1j * z_p[1]
-            return np.array(map(lambda z: [-z[1], z[0]], zs))
-
-            z = current_method(z, zp=0, zpp=0)
-            return np.array([np.real(z), np.imag(z)])
-
         self.roots = [
             ComplexValueTracker().set_value(root) for root in FIXED_POINT_EXAMPLES[0]
         ]

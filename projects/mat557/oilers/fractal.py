@@ -28,6 +28,8 @@ class FractalNewton(ShaderMobject):
         self.set_roots(roots)
         self.set_scale_factor(1)
         self.enable_limit_coloring()
+        self.set_seed_space()
+        self.set_iteration_coloring()
 
     def set_scale_factor(self, factor: float):
         self.scale_factor = factor
@@ -42,6 +44,16 @@ class FractalNewton(ShaderMobject):
 
     def enable_limit_coloring(self):
         self.uniforms["u_color_mode"] = 1
+
+    def set_iteration_coloring(self, color=True):
+        self.uniforms["u_do_iteration_coloring"] = 1 if color else 0
+
+    def set_parameter_space(self, is_parametric=True):
+        self.uniforms["u_parametric"] = is_parametric
+        self.is_parametric = 1 if is_parametric else 0
+
+    def set_seed_space(self, is_seed=True):
+        self.set_parameter_space(not is_seed)
 
     def set_roots(self, roots):
         self.roots = roots
