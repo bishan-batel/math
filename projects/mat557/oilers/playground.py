@@ -155,3 +155,21 @@ class Playground(Slide):
                 min_dist = dist
         if min_tracker is not None:
             min_tracker.set_value(p)
+
+
+class LiSpecial(Scene):
+    def construct(self):
+
+        TRIS = [
+            ([0, 1, 0], [-1, 2, 0], [1, 2, 0]),
+            ([0, 0, 0.5], [-1, 0, -3], [1, 2, -3]),
+            ([0, 3, -0.5], [1, 3, 3], [-1, 3, 3]),
+        ]
+
+        tri1 = Polygon(*TRIS[0])
+        tri2 = Polygon(*TRIS[1])
+        tri3 = Polygon(*TRIS[2])
+
+        self.add(tri1, tri2, tri3)
+
+        self.embed()

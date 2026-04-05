@@ -8,7 +8,7 @@ class ShaderMobject(Mobject):
         shader_folder: str,
         data_dtype: np.dtype = [("point", np.float32, (3,))],
         height: float = FRAME_HEIGHT,
-        aspect_ratio: float = 16 / 9,
+        aspect_ratio: float = FRAME_WIDTH / FRAME_HEIGHT,
         **kwargs,
     ):
         self.aspect_ratio = aspect_ratio
