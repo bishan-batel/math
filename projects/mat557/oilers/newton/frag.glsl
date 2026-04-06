@@ -13,15 +13,15 @@ const uint COLOR_DOMAIN = 0u;
 const uint COLOR_LIMITING = 1u;
 
 const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
-const float EPSILON = 1E-5f;
+const float u_epsilon = 1E-5f;
 
 // #define vec2 dvec2
 // #define float double
 
-const uint MAX_ITERATIONS = 100u;
+uniform uint u_max_iterations = 500u;
 
-const vec3 INFINITY_COLOR = vec3(1.);
-const vec3 CYCLE_COLOR = vec3(0.);
+uniform vec3 u_color_infinity;
+uniform vec3 u_color_cycle;
 
 uniform vec3 u_color1;
 uniform vec3 u_color2;
@@ -188,7 +188,7 @@ vec3 domain_color_complex(vec2 z) {
     vec3 color = hsv2rgb(vec3(theta, 1.0, 1.0));
 
     // Add grid lines for magnitude (logarithmic scale)
-    color *= 0.8 + 0.2 * sin(log(r) * 10.0);
+    // color *= 0.8 + 0.2 * sin(log(r) * 10.0);
     // color *= length()
     return color;
 }
@@ -200,9 +200,9 @@ vec3 limit_color_complex(
     vec2 r2,
     vec2 r3
 ) {
-    if (any(isnan(z)) || any(isinf(z))) return INFINITY_COLOR;
+    if (any(isnan(z)) || any(isinf(z))) return u_color_infinity;
 
-    if (min_root_distance(z, r1, r2, r3) > EPSILON) return CYCLE_COLOR;
+    if (min_root_distance(z, r1, r2, r3) > u_epsilon) return u_color_cycle;
 
     float d1 = length(r1 - z);
     float d2 = length(r2 - z);
@@ -215,11 +215,10 @@ vec3 limit_color_complex(
     else if (d3 <= min(d1, d2)) color = u_color3;
 
     // if (u_do_iteration_coloring) {
-    // color *= 0.5f - 10.f * log(0.9f - 1.1f * float(iterations) / float(MAX_ITERATIONS));
+    // color *= 0.5f - 10.f * log(0.9f - 1.1f * float(iterations) / float(u_max_iterations));
     if (u_do_iteration_coloring != 0u) {
-        color *= 0.9f + pow(0.08f * float(iterations), 2.f);
+        color *= 1.0f + pow(0.08f * float(iterations / float(u_max_iterations)) * 200.f, 2.f);
     }
-    // }
 
     return color;
 }
@@ -237,7 +236,7 @@ vec2 iterate_method(vec2 initial_z, out uint iterations, uint iter_mode) {
 
     uint i = 0u;
 
-    for (; i < MAX_ITERATIONS; i++) {
+    for (; i < u_max_iterations; i++) {
         if (iter_mode == METHOD_NEWTON) {
             z = newton(z);
         }
@@ -251,7 +250,7 @@ vec2 iterate_method(vec2 initial_z, out uint iterations, uint iter_mode) {
             z = oiler(z, zp, zpp);
         }
 
-        if (min_root_distance(z, u_root1, u_root2, u_root3) < EPSILON) {
+        if (min_root_distance(z, u_root1, u_root2, u_root3) < u_epsilon) {
             break;
         }
     }
@@ -266,12 +265,18 @@ vec3 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
     vec2 z = z0;
 
     uint i = 0u;
-    for (; i < MAX_ITERATIONS; i++) {
+    for (; i < u_max_iterations; i++) {
         z = z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3));
-        if (min_root_distance(z, r1, r2, r3) < EPSILON) break;
+        if (min_root_distance(z, r1, r2, r3) < u_epsilon) break;
     }
 
-    return limit_color_complex(z, i, r1, r2, r3);
+    if (u_color_mode == COLOR_DOMAIN) {
+        return domain_color_complex(z);
+    } else if (u_color_mode == COLOR_LIMITING) {
+        return limit_color_complex(z, i, r1, r2, r3);
+    } else {
+        return vec3(0.);
+    }
 }
 
 void main() {
@@ -279,20 +284,18 @@ void main() {
 
     vec3 color = vec3(1.);
 
-    // if (u_parametric) { } else
-    uint iterations;
-    vec2 z = iterate_method(pixel_z, iterations, u_mode);
+    if (u_parametric == 0u) {
+        uint iterations;
+        vec2 z = iterate_method(pixel_z, iterations, u_mode);
 
-    if (u_color_mode == COLOR_DOMAIN) {
-        color = domain_color_complex(z);
-    } else if (u_color_mode == COLOR_LIMITING) {
-        color = limit_color_complex(z, iterations, u_root1, u_root2, u_root3);
+        if (u_color_mode == COLOR_DOMAIN) {
+            color = domain_color_complex(z);
+        } else if (u_color_mode == COLOR_LIMITING) {
+            color = limit_color_complex(z, iterations, u_root1, u_root2, u_root3);
+        }
+    } else if (u_parametric == 1u) {
+        uint iterations;
+        color = Parametric_newton(pixel_z, u_root2, u_root3);
     }
-
-    // z = f(pixel_z);
-    // color = domain_color_complex(z);
-    // color = domain_color_complex(pixel_z);
-    // color = limit_color_complex(z, iterations, u_root1, u_root2, u_root3);
-
     frag_color = vec4(color, 1.0);
 }
