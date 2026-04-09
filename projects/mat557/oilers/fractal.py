@@ -61,6 +61,9 @@ class FractalNewton(ShaderMobject):
         self.scale_factor = factor
         self.uniforms["scale_factor"] = factor
 
+    def set_should_color_cycles(self, should_color=True):
+        self.uniforms["u_should_color_cycles"] = 1 if should_color else 0
+
     def set_mode(self, m: int):
         self.mode = m
         self.uniforms["u_mode"] = self.mode

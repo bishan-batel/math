@@ -9,8 +9,9 @@ from manimlib import *  # pyright: ignore
 
 from projects.mat557.oilers.common import *
 from projects.mat557.oilers.fractal import ROOT_COLORS_BRIGHT, ROOT_COLORS_DEEP
+from sympy import *
 
-ADD_WAIT_TIME = False
+ADD_WAIT_TIME = True
 
 
 def add_wait(slide):
@@ -367,9 +368,6 @@ class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
         self.embed()
 
 
-from sympy import *
-
-
 class NewtonCubic(Slide):
     def construct(self) -> None:
         add_wait(self)
@@ -587,23 +585,86 @@ class NewtonCubic(Slide):
         )
 
 
-# SYM_CUBIC_FN = (
-#     (Symbol("z") - Symbol("r_1"))
-#     * (Symbol("z") - Symbol("r_2"))
-#     * (Symbol("z") - Symbol("r_3"))
-# )
-#
-# SYM_CUBIC_FN_DERIV = simplify(Derivative(SYM_CUBIC_FN, evaluate=True), ratio=oo)
-#
-# SYM_NEWTONS = Symbol("z") - Function("f")(Symbol("z")) / Derivative(
-#     Function("f")(Symbol("z")), Symbol("z")
-# )
-#
-# SYM_NEWTONS_CUBIC = Symbol("z") - SYM_CUBIC_FN / SYM_CUBIC_FN_DERIV
-# SYM_NEWTONS_CUBIC_DERIV = simplify(
-#     factor(Derivative(SYM_NEWTONS_CUBIC, Symbol("z"), evaluate=True), deep=True),
-#     ratio=oo,
-# )
+class FixedPointMethod(Slide):
+    def construct(self) -> None:
+        add_wait(self)
+
+        fixed_point_formula = VGroup(
+            Tex(
+                r"z_{n+1} = f(z_n)",
+                isolate=["=", "\\lim", "n", "z", "z_{n+1}", "z_n"],
+            )
+        )
+
+        title = Title("Fixed Point Method").fix_in_frame()
+        self.add_to_canvas(title=title)
+        self.play(Write(title), title.animate.to_edge(UP))
+
+        self.next_slide()
+
+        self.play(Write(fixed_point_formula))
+
+        def gcos(z):
+            return 2 * np.cos(z)
+
+        axes = Axes(
+            width=FRAME_WIDTH * 0.8,
+            height=FRAME_HEIGHT * 0.6,
+            # x_range=(-4, 4, 1),
+            # y_range=(-2, 2, 1),
+            x_range=(-4, 4, 1),
+            y_range=(-5, 5, 1),
+        ).shift(DOWN * 0.5)
+
+        axes.add_coordinate_labels()
+
+        self.next_slide()
+        cos_graph = axes.get_graph(gcos).set_color(RED)
+        self.play(
+            fixed_point_formula.animate.scale(0.8).to_corner(DL), ShowCreation(axes)
+        )
+
+        self.play(ShowCreation(cos_graph))
+
+        z0 = ValueTracker(0)
+
+        t2c = {
+            "z_{\\d}": YELLOW,
+            "z_{n}": YELLOW,
+            "z_{n+1}": YELLOW,
+        }
+
+        marker = (
+            VGroup(
+                ArrowTip(angle=PI / 2, width=0.2, length=0.2, fill_color=YELLOW),
+                Tex("z_0", t2c=t2c),
+            )
+            .arrange(DOWN)
+            .add_updater(
+                lambda m: m.move_to(axes.coords_to_point(z0.get_value())).shift(
+                    DOWN * m.get_height() * 0.5
+                )
+            )
+        )
+        self.play(FadeIn(marker))
+
+        def apply_rule():
+            self.play(z0.animate.set_value(gcos(z0.get_value())))
+
+        apply_rule()
+        apply_rule()
+        apply_rule()
+        apply_rule()
+
+        self.embed()
+        self.next_slide()
+
+        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
+
+        holo_title = Title("Holomorphic Dynamics").to_edge(UP).fix_in_frame()
+
+        self.play(Transform(title, holo_title))
+        self.add_to_canvas(htitle=holo_title)
 
 
 class MontelsThereom(Slide):

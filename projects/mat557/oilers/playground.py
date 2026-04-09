@@ -1,6 +1,8 @@
 import sys
 import os
 
+from sympy import limit
+
 from custom.shader_obj import *
 
 from manimlib import *  # pyright: ignore
@@ -11,6 +13,10 @@ from manim_slides.slide import Slide
 from projects.mat557.oilers.fractal import ROOT_COLORS_DEEP, FractalNewton, c2v
 from projects.mat557.oilers.methods import *
 from projects.mat557.oilers.common import *
+
+GOLDEN_RATIO = (1 + np.sqrt(5.0)) / 2.0
+
+SECANT_OFFSET = 0.01
 
 
 class Playground(Slide):
@@ -34,17 +40,22 @@ class Playground(Slide):
             ComplexValueTracker().set_value(root) for root in FIXED_POINT_EXAMPLES[0]
         ]
 
+        def set_coefs(c0, c1, c2, c3):
+            new_roots = Polynomial((c0, c1, c2, c3)).roots()
+            for r, n_r in zip(self.roots, new_roots):
+                r.set_value(n_r)
+
         # Create a shader mobject (a self.plane with shader code)
         scale_factor = ValueTracker(1)
-        shader_obj = FractalNewton(roots=[r.get_value() for r in self.roots])
-        shader_obj.set_z_index(-20)
-        shader_obj.f_always.set_scale_factor(lambda: scale_factor.get_value())
-        shader_obj.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
-        shader_obj.f_always.set_mode(lambda: method_to_mode(self.method))
-        self.add(shader_obj)
+        fractal = FractalNewton(roots=[r.get_value() for r in self.roots])
+        fractal.set_z_index(-20)
+        fractal.f_always.set_scale_factor(lambda: scale_factor.get_value())
+        fractal.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
+        fractal.f_always.set_mode(lambda: method_to_mode(self.method))
+        self.add(fractal)
 
         def current_method(z: complex, zp: complex, zpp: complex):
-            f = shader_obj.polynomial()
+            f = fractal.polynomial()
             df = f.deriv()
             return self.method(z, zp=zp, zpp=zpp, f=f, df=df, d2f=df.deriv())
 
@@ -71,35 +82,61 @@ class Playground(Slide):
 
         self.next_slide()
 
+        self.fix_z0_to_midpoint = False
+        self.show_path = True
+        self.path_iterations = 100
+
         def make_path(z: complex):
-            self.z0.set_value(sum(r.get_value() for r in self.roots) / 3.0)
+            if self.fix_z0_to_midpoint:
+                self.z0.set_value(sum(r.get_value() for r in self.roots) / 3.0)
+            if not self.show_path:
+                return VMobject()
 
             values = [z]
             if is_oiler_fan(self.method):
-                f = shader_obj.polynomial()
+                f = fractal.polynomial()
                 zpp = z
-                zp = zpp + ((1 + np.sqrt(5.0)) / 2.0)
+                zp = zpp + GOLDEN_RATIO
                 z = zp - f(zp) / ((f(zp) - f(zpp)) / (zp - zpp))
                 values = [zpp, zp, z]
+            elif is_secant(self.method):
+                zp = z
+                z = z + SECANT_OFFSET
+                values = [zp, z]
 
             # c = z
             # values = [c]
 
-            for _ in range(100):
+            for _ in range(self.path_iterations):
                 zp = 0
                 zpp = 0
                 if is_oiler_fan(self.method):
                     zp = values[-2]
                     zpp = values[-3]
+                elif is_secant(self.method):
+                    zp = values[-2]
 
                 values.append(current_method(z=values[-1], zp=zp, zpp=zpp))
 
             values = [self.plane.n2p(z) for z in values]
 
+            gradient = list(Color("White").range_to(Color("Red"), len(values)))
+
             return (
-                VMobject(stroke_width=1.5, color=BLUE)
+                VMobject(stroke_width=1.0, color=BLUE)
                 .set_points_as_corners(values)
-                .add(*(Dot(z, radius=0.03) for z in values))
+                .add(
+                    *(
+                        Dot(
+                            z,
+                            fill_color=gradient[i],
+                            stroke_color=gradient[i],
+                            radius=0.03 * (1.0 - float(i) / float(len(values))),
+                        ).set_color(gradient[i])
+                        for i, z in enumerate(values)
+                    )
+                )
+                .set_submobject_colors_by_gradient(*gradient)
             )
 
         # initial value
@@ -108,7 +145,7 @@ class Playground(Slide):
         z0 = ComplexValueTracker()
         self.z0 = z0
 
-        shader_obj.f_always.set_z0(lambda: self.z0.get_value())
+        fractal.f_always.set_z0(lambda: self.z0.get_value())
 
         z0_marker = (
             Tex("z_0")
@@ -155,21 +192,3 @@ class Playground(Slide):
                 min_dist = dist
         if min_tracker is not None:
             min_tracker.set_value(p)
-
-
-class LiSpecial(Scene):
-    def construct(self):
-
-        TRIS = [
-            ([0, 1, 0], [-1, 2, 0], [1, 2, 0]),
-            ([0, 0, 0.5], [-1, 0, -3], [1, 2, -3]),
-            ([0, 3, -0.5], [1, 3, 3], [-1, 3, 3]),
-        ]
-
-        tri1 = Polygon(*TRIS[0])
-        tri2 = Polygon(*TRIS[1])
-        tri3 = Polygon(*TRIS[2])
-
-        self.add(tri1, tri2, tri3)
-
-        self.embed()

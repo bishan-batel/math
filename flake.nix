@@ -26,6 +26,7 @@
                 python314
                 cairo
                 ffmpeg 
+                cloc
                 just
                 shader-slang
                 spirv-cross
