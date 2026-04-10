@@ -121,6 +121,8 @@ class FirstTitle(Slide):
 
 
 class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
+    function: Polynomial = SIMPLE_POLY_EXAMPLES[1]
+
     def construct(self) -> None:
         add_wait(self)
 
@@ -263,7 +265,6 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             notes="I'll come back to exactly why iterative composition makes this clear, but first just a little geometric review of what newtons method is doing"
         )
 
-        self.function = Polynomial(coef=[0.3, -2, 0, 1])
         (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
         func_graph.set_color(RED_B)
 
@@ -282,7 +283,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         x0_label = VGroup(
             Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
-            DecimalNumber(float(x0.get_value())),
+            DecimalNumber(float(x0.get_value()), num_decimal_places=4),
         )
 
         def perform_one_step(speed=0.8):
@@ -348,12 +349,10 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.next_slide()
 
-        x0_label.become(
-            VGroup(
-                Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
-                DecimalNumber(float(x0.get_value()), num_decimal_places=4),
-            )
+        x0_label[0].become(
+            Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
         )
+        x0_label.arrange(RIGHT)
 
         self.play(
             FadeOut(ex_root),
@@ -400,11 +399,8 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         def sv(z, run_time=1):
             self.play(x0.animate(run_time=run_time).set_value(z))
 
-        sv(about_roots[2])
-
         self.next_slide(
-            loop=True,
-            auto_next=True,
+            loop=False,
             notes="A thing we can notice is that if we start near a root, it tends to attract to that root",
         )
 
@@ -441,27 +437,29 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         )
 
         sv(-0.5781)
-        self.wait(1)
+
+        self.next_slide()
+
         sv(-0.5780)
 
-        self.embed()
-        # ImageMobject
+        self.next_slide()
+        self.play(*(FadeOut(m) for m in self.mobjects))
 
 
-class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
-    function: Polynomial = SIMPLE_POLY_EXAMPLES[0]
+class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
+    function: Polynomial = SIMPLE_POLY_EXAMPLES[1]
 
     def construct(self) -> None:
-        (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
+        # (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
 
         add_wait(self)
 
-        method_title = TexText("Newtons Method")
+        title = Title("Newtons Method")
 
-        self.play(FadeIn(method_title))
+        self.play(Write(title))
 
         tex_kw = {
-            "isolate": ["x_{n+1}", "x_n", "z_n", "z_{n+1}", "P", "P'"],
+            "isolate": ["x_{n+1}", "x_n", "z_n", "z_{n+1}", "P", "P'", "f", "f'"],
             "t2c": {
                 "x_{n+1}": YELLOW,
                 "x_n": YELLOW,
@@ -470,58 +468,34 @@ class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
             },
         }
 
-        self.next_slide()
-
         newtons_tex = Tex(
+            r"{x_{n+1}}", "=", "{x_n}", "-", r"\frac{f({x_n})}{f'({x_n})}", **tex_kw
+        )
+
+        self.play(Write(newtons_tex))
+
+        self.next_slide(
+            notes="While newtons method works for any continuous/differentiable function, we are going to focus our view to polynomials"
+        )
+
+        newtons_tex_poly = Tex(
             r"{x_{n+1}}", "=", "{x_n}", "-", r"\frac{P({x_n})}{P'({x_n})}", **tex_kw
         )
-
-        self.play(
-            method_title.animate.to_edge(UP),
-            Write(newtons_tex),
-        )
-
-        self.next_slide()
-
-        self.play(
-            method_title.animate.to_corner(UL),
-            newtons_tex.animate.scale(0.8).to_corner(DL),
-            method_title.animate.set_opacity(0.8),
-            ShowCreation(axes, run_time=2),
-        )
-        self.play(FadeIn(func_graph, run_time=1))
-
-        self.next_slide()
-
-        self.play(FadeIn(x0_marker))
-
-        def iterate_alot():
-            for _ in range(6):
-                self.perform_one_step(0.01)
-
-        self.perform_one_step()
-        self.perform_one_step()
-        self.perform_one_step()
-
-        # self.add(limit_point)
-
-        self.next_slide()
-
-        self.play(
-            FadeOut(x0_marker),
-            FadeOut(axes),
-            FadeOut(func_graph),
-            newtons_tex.animate.center(),
-        )
-
-        self.remove(x0_marker, axes, func_graph)
-
-        self.next_slide()
 
         generic_polynomial = Tex(
             r"P(x) = c_0 + c_1 x + c_2 x^2 + c_3 x^3 + \cdots",
             isolate=[r"c_\d", r"x", r"z"],
+            t2c=tex_kw["t2c"],
+        ).next_to(newtons_tex_poly, DOWN)
+
+        self.play(
+            TransformMatchingTex(
+                newtons_tex, newtons_tex_poly, key_map={"f": "P", "f'": "P'"}
+            ),
+            Write(newtons_tex),
         )
+
+        self.next_slide()
 
         self.next_slide()
 
