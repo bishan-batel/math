@@ -7,6 +7,8 @@ from manim_slides.slide import Slide
 from manim_slides.slide.animation import Wipe
 from manimlib import *  # pyright: ignore
 
+
+from custom.portrait import *
 from projects.mat557.oilers.common import *
 from projects.mat557.oilers.fractal import ROOT_COLORS_BRIGHT, ROOT_COLORS_DEEP
 from sympy import *
@@ -116,107 +118,151 @@ class FirstTitle(Slide):
         self.wipe(self.mobjects_without_canvas)
 
 
-class AbstractNewtonsMethodRealVisualisation(Slide):
-    function = SIMPLE_POLY_EXAMPLES[0]
-    x0 = ValueTracker(0)
-    axes: Axes
-    func_graph: ParametricCurve
-    limit_point: VGroup
+class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
+    def construct(self) -> None:
+        add_wait(self)
 
-    def setup_graphs(self):
-        self.make_axes()
-        self.make_function()
-        self.x0
-        self.make_x0_marker()
-        self.make_limiting_marker()
+        title = Title("Newtons", "Method")
+        title_newton = title.select_part("Newtons")
+        title_method = title.select_part("Method")
 
-        return (self.axes, self.func_graph, self.x0, self.x0_marker, self.limit_point)
+        # ====================================================
+        #                People Introduction
+        # ====================================================
 
-    def make_x0_marker(self):
+        self.play(Write(title))
 
-        v_line = self.axes.get_v_line_to_graph(
-            self.x0.get_value(), self.func_graph, color=GREY
+        self.add_to_canvas(title=title)
+
+        portrait_newton = Group(
+            PortraitWithCaption(
+                image_path="./image/isaac_newton.jpg", name="Isaac Newton", caption=""
+            ).shift(LEFT * 2.5),
+            SurroundingRectangle(title_newton),
         )
 
-        v_line.f_always.become(
-            lambda: self.axes.get_v_line_to_graph(
-                self.x0.get_value(), self.func_graph, color=GREY
+        portrait_method = Group(
+            PortraitWithCaption(
+                image_path="./image/isaac_newton.jpg", name="John Method", caption=""
+            ).shift(RIGHT * 2.5),
+            SurroundingRectangle(title_method),
+        )
+
+        # arrows
+        portrait_newton.add(
+            Arrow(portrait_newton[1], portrait_newton[0], path_arc=PI / 6)
+        )
+        portrait_method.add(
+            Arrow(portrait_method[1], portrait_method[0], path_arc=-PI / 6)
+        )
+
+        self.next_slide(
+            notes="""This root-finding procedure was made by Isaac newton and John Method ()"""
+        )
+
+        self.play(
+            ShowCreation(portrait_newton[0], run_time=0.5),
+            FadeIn(portrait_newton[1]),
+            FadeIn(portrait_newton[0][0]),
+            Write(portrait_newton[2]),
+        )
+
+        self.play(
+            ShowCreation(portrait_method[0], run_time=0.5),
+            FadeIn(portrait_method[1]),
+            FadeIn(portrait_method[0][0]),
+            Write(portrait_method[2]),
+        )
+
+        # ====================================================
+        #                       Formula
+        # ====================================================
+        self.next_slide()
+        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
+
+        tex_kw = {
+            "isolate": ["x_{n+1}", "x_n", "z_n", "z_{n+1}", "P", "P'", "f", "(", ")"],
+            "t2c": {
+                "x_{n+1}": BLUE_B,
+                "x_n": BLUE_B,
+                "z_{n+1}": BLUE_B,
+                "z_\\d": BLUE_B,
+                "x_\\d": BLUE_B,
+                "z_n": BLUE_B,
+                "z": BLUE_B,
+                "x": BLUE_B,
+            },
+        }
+
+        tex_func = Tex("f(x) = 0", **tex_kw)
+
+        self.play(Write(tex_func))
+
+        brace = Brace(tex_func.select_part("f(x)"), buff=0.1)
+        brace_question = Tex("x=?", **tex_kw).next_to(brace, DOWN)
+        self.play(Write(brace), Write(brace_question))
+
+        self.next_slide(notes="Newtons method is the following sequence")
+
+        self.play(FadeOut(brace), FadeOut(brace_question))
+
+        newtons_tex_seq = Tex(r"x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}", **tex_kw)
+        newtons_tex_fn = Tex(r"N(x) = x - \frac{f(x)}{f'(x)}", **tex_kw)
+
+        equations = VGroup(newtons_tex_seq)
+
+        self.play(
+            TransformMatchingTex(tex_func, newtons_tex_seq, key_map={"x": "x_{n+1}"})
+        )
+
+        self.next_slide(
+            notes="Where we take some initial value x0 and iterate this sequence"
+        )
+
+        iterative_tex = Tex(
+            r"x_0 \longrightarrow  x_1 \longrightarrow x_2 \longrightarrow \cdots",
+            isolate=["x_\\d"],
+            t2c={"x_0": GREEN_A, "x_1": GREEN_B, "x_2": GREEN_C},
+        ).next_to(equations[0], DOWN)
+
+        self.play(
+            Write(
+                iterative_tex,
             )
         )
 
-        self.x0_marker = VGroup(
-            v_line,
-            Dot().add_updater(
-                lambda d: d.move_to(
-                    self.func_graph.get_point_from_function(self.x0.get_value())
-                )
-            ),
-            ArrowTip(
-                angle=PI / 2, width=0.2, length=0.2, fill_color=YELLOW
-            ).add_updater(
-                lambda m: m.move_to(self.axes.x_axis.n2p(self.x0.get_value()), UP)
-            ),
+        self.next_slide(
+            notes="However, for this presentation, it makes more sense for us to shift the language from sequences to composition "
         )
-        return self.x0_marker
 
-    def make_function(self, function=None, bind=False):
-        if function is not None:
-            self.function = function
+        iterative_tex_fn = Tex(
+            r"x_0 \overset{N}{\longrightarrow} x_1 \overset{N}{\longrightarrow} x_2 \overset{N}{\longrightarrow} \cdots",
+            isolate=["x_\\d"],
+            t2c={"x_0": GREEN_A, "x_1": GREEN_B, "x_2": GREEN_C},
+        ).next_to(newtons_tex_fn, DOWN)
 
-        self.func_graph = self.axes.get_graph(
-            function=lambda t: self.function(t), bind=True
-        )
-        return self.func_graph
-
-    def make_axes(self):
-        self.axes = Axes().shift(RIGHT * 0.2)
-        self.axes.add_coordinate_labels()
-        return self.axes
-
-    def perform_one_step(self, speed: float = 0.8):
-        x = float(self.x0.get_value())
-        f_x = self.function(x)
-        m = self.function.deriv()(x)
-
-        line_func = self.axes.get_graph(
-            function=lambda t: m * (t - x) + f_x, color=RED, opacity=0.8
-        )
-        line = line_func
-        self.play(ShowCreation(line, lag_ratio=0.5, run_time=speed))
-
-        next_x = x - f_x / m
-
-        intersection = Dot(line_func.get_point_from_function(next_x), color=RED)
-
-        self.play(ShowCreation(intersection, run_time=speed / 2))
-        self.play(self.x0.animate(run_time=speed).set_value(next_x))
         self.play(
-            FadeOut(line, run_time=speed),
-            FadeOut(intersection, run_time=speed),
+            TransformMatchingTex(
+                newtons_tex_seq, newtons_tex_fn.move_to(newtons_tex_seq), run_time=0.8
+            )
         )
-        self.remove(line, intersection)
+        self.play(TransformMatchingTex(iterative_tex, iterative_tex_fn))
 
-    def make_limiting_marker(self):
-        self.limit_point = GlowDot()
+        # ====================================================
+        #                Geometric Showcase
+        # ====================================================
 
-        def limit_behavior(z):
-            points = [z]
+        self.add_to_canvas(formula=newtons_tex_fn)
 
-            f = self.function
-            df = self.function.deriv()
+        self.next_slide(
+            notes="I'll come back to exactly why iterative composition makes this clear, but first just a little geometric review of what newtons method is doing"
+        )
 
-            for _ in range(40):
-                z = points[-1]
-                points.append(z - f(z) / df(z))
+        self.play(newtons_tex_fn.animate.to_corner(DL).scale(0.6))
 
-            return z
+        (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
 
-        # self.limit_point.f_always.move_to(
-        #     lambda: self.func_graph.get_point_from_function(
-        #         np.real(limit_behavior(self.x0.get_value()))
-        #     )
-        # )
-        return self.limit_point
+        # ImageMobject
 
 
 class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
@@ -275,8 +321,6 @@ class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
         self.perform_one_step()
 
         # self.add(limit_point)
-
-        # self.embed()
 
         self.next_slide()
 
@@ -364,8 +408,6 @@ class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
         swap_roots(2, 1)
         swap_roots(3, 1)
         swap_roots(3, 2)
-
-        self.embed()
 
 
 class NewtonCubic(Slide):
@@ -646,6 +688,12 @@ class FixedPointMethod(Slide):
                 )
             )
         )
+        always_redraw(
+            lambda: VGroup(
+                axes.get_v_line_to_graph(z0.get_value(), cos_graph),
+                axes.get_h_line_to_graph(z0.get_value(), cos_graph),
+            )
+        )
         self.play(FadeIn(marker))
 
         def apply_rule():
@@ -656,7 +704,6 @@ class FixedPointMethod(Slide):
         apply_rule()
         apply_rule()
 
-        self.embed()
         self.next_slide()
 
         self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
