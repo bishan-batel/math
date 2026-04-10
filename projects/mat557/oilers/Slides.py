@@ -351,7 +351,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         x0_label.become(
             VGroup(
                 Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
-                DecimalNumber(float(x0.get_value())),
+                DecimalNumber(float(x0.get_value()), num_decimal_places=4),
             )
         )
 
@@ -425,10 +425,24 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         sv(-0.6)
 
         self.next_slide(
-            notes="The method kinda goes erratic until it flings itself far enough to converge to the leftmost root, if we push x0 closer however back to -0.5 - we can see that in between those values it actually can go to the last root somehow"
+            notes="The method kinda goes erratic until it flings itself far enough to converge to the leftmost root, we can push this method just a 0.01, a hundreth  to the right and it will converge to the same root but do so significantly quicker"
         )
 
-        sv(-0.55)
+        sv(-0.59)
+
+        self.next_slide(
+            notes="If we push x0 closer however back to -0.5 - we can see that in between those values it actually can go to the last root somehow, but during the transition of limiting points there seems to be a huge decrease of effiency / convergence, and even here we can see that newtons method will actually bounce around a little bit first"
+        )
+
+        sv(-0.58)
+
+        self.next_slide(
+            notes="And again we can notice that at this sort of boundry between the two limits the function will indeed converge, but do so everso erraticly"
+        )
+
+        sv(-0.5781)
+        self.wait(1)
+        sv(-0.5780)
 
         self.embed()
         # ImageMobject
