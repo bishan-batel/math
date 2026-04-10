@@ -1,3 +1,5 @@
+# pyright: reportGeneralTypeIssues=false
+
 from re import Pattern
 import sys
 import os
@@ -13,7 +15,7 @@ from projects.mat557.oilers.common import *
 from projects.mat557.oilers.fractal import ROOT_COLORS_BRIGHT, ROOT_COLORS_DEEP
 from sympy import *
 
-ADD_WAIT_TIME = True
+ADD_WAIT_TIME = False
 
 
 def add_wait(slide):
@@ -29,7 +31,7 @@ class FirstTitle(Slide):
 
         self.play(Write(text))
 
-        author = Text("Kishan S Patel").next_to(text, BOTTOM).set_opacity(0)
+        author = TexText("Kishan S Patel").next_to(text, BOTTOM).set_opacity(0)
 
         self.play(
             Write(author),
@@ -139,6 +141,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
                 image_path="./image/isaac_newton.jpg", name="Isaac Newton", caption=""
             ).shift(LEFT * 2.5),
             SurroundingRectangle(title_newton),
+            Arrow(),
         )
 
         portrait_method = Group(
@@ -146,13 +149,14 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
                 image_path="./image/isaac_newton.jpg", name="John Method", caption=""
             ).shift(RIGHT * 2.5),
             SurroundingRectangle(title_method),
+            Arrow(),
         )
 
         # arrows
-        portrait_newton.add(
+        portrait_newton[2].become(
             Arrow(portrait_newton[1], portrait_newton[0], path_arc=PI / 6)
         )
-        portrait_method.add(
+        portrait_method[2].become(
             Arrow(portrait_method[1], portrait_method[0], path_arc=-PI / 6)
         )
 
@@ -252,16 +256,181 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         #                Geometric Showcase
         # ====================================================
 
+        self.remove_from_canvas("title")
         self.add_to_canvas(formula=newtons_tex_fn)
 
         self.next_slide(
             notes="I'll come back to exactly why iterative composition makes this clear, but first just a little geometric review of what newtons method is doing"
         )
 
-        self.play(newtons_tex_fn.animate.to_corner(DL).scale(0.6))
-
+        self.function = Polynomial(coef=[0.3, -2, 0, 1])
         (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
+        func_graph.set_color(RED_B)
 
+        self.play(
+            newtons_tex_fn.animate.scale(0.8).to_corner(DL),
+            ShowCreation(axes),
+            FadeOut(title),
+            *(FadeOut(m) for m in self.mobjects_without_canvas),
+        )
+
+        self.play(FadeIn(func_graph))
+
+        self.next_slide(note="We start with some initial guess x0")
+
+        x0.set_value(-1)
+
+        x0_label = VGroup(
+            Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
+            DecimalNumber(float(x0.get_value())),
+        )
+
+        def perform_one_step(speed=0.8):
+            self.perform_one_step(speed)
+            self.play(
+                Transform(
+                    x0_label[0],
+                    Tex(
+                        f"x_{self.n}",
+                        "=",
+                        t2c={
+                            f"x_{self.n}": YELLOW,
+                        },
+                    ).move_to(x0_label[0]),
+                    run_time=speed * 0.7,
+                )
+            )
+
+        # x0_label[0].select_part(r"x_\d").f_always
+
+        (
+            x0_label[1]
+            .f_always.set_value(lambda: x0.get_value())
+            .next_to(lambda: x0_label[0])
+            .shift(lambda: UP * 0.05)
+        )
+
+        self.play(FadeIn(x0_marker), Write(x0_label))
+
+        self.next_slide(notes="We apply the function")
+
+        perform_one_step()
+
+        self.next_slide(
+            notes="And we keep applying the function until we make it to a point",
+            loop=False,
+        )
+
+        for _ in range(4):
+            perform_one_step(0.5)
+
+        self.next_slide(notes="And with only 3 iterations, its pretty good")
+
+        ex_root = Tex(
+            f"f(x_{self.n})",
+            r"\, \approx \,",
+            f"{self.f(x0.get_value()):.8f}\\dots",
+            isolate=[f"x_{self.n}"],
+            t2c={f"x_{self.n}": YELLOW},
+        ).center()
+
+        self.play(
+            TransformFromCopy(x0_label[0], ex_root),
+            FadeOut(axes),
+            FadeOut(func_graph),
+            FadeOut(x0_marker),
+            FadeOut(x0_label),
+        )
+
+        """
+        What happens if you move the start point?
+        """
+
+        self.next_slide()
+
+        x0_label.become(
+            VGroup(
+                Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
+                DecimalNumber(float(x0.get_value())),
+            )
+        )
+
+        self.play(
+            FadeOut(ex_root),
+            FadeIn(axes),
+            FadeIn(func_graph),
+            FadeIn(x0_marker),
+            FadeIn(x0_label),
+        )
+
+        self.n = 0
+
+        def make_path():
+            values = [float(x0.get_value())]
+
+            arrows = VGroup()
+
+            while np.abs(self.f(values[-1])) > 0.1:
+                z = values[-1]
+                values.append(z - self.f(z) / self.df(z))
+
+                arrows.add(
+                    Arrow(
+                        # axes.input_to_graph_point(z, func_graph),
+                        axes.c2p(z),
+                        axes.c2p(values[-1]),
+                        # axes.input_to_graph_point(values[-1], func_graph),
+                        path_arc=PI / 2 * np.sign(z) * np.sign(values[-1]),
+                        thickness=2,
+                        buff=SMALL_BUFF,
+                    )
+                )
+
+            return arrows
+
+        limiting_path = always_redraw(make_path)
+
+        roots: list[float] = self.function.roots()
+        about_roots = [roots[0] - 0.5, roots[1] - 0.4, roots[2] + 0.5]
+
+        self.play(ShowCreation(limiting_path), FadeIn(limit_point))
+
+        self.next_slide()
+
+        def sv(z, run_time=1):
+            self.play(x0.animate(run_time=run_time).set_value(z))
+
+        sv(about_roots[2])
+
+        self.next_slide(
+            loop=True,
+            auto_next=True,
+            notes="A thing we can notice is that if we start near a root, it tends to attract to that root",
+        )
+
+        for r in about_roots:
+            sv(r)
+            self.wait(1)
+
+        self.next_slide(
+            notes="Complexity arises though if we want to understand what happens when our limiting root changes as we vary x0"
+        )
+
+        sv(-0.5)
+
+        self.next_slide(
+            notes="This here pretty quickly converges to this middle root, however if we slightly nudge our starting value by just a tenth"
+        )
+
+        sv(-0.6)
+
+        self.next_slide(
+            notes="The method kinda goes erratic until it flings itself far enough to converge to the leftmost root, if we push x0 closer however back to -0.5 - we can see that in between those values it actually can go to the last root somehow"
+        )
+
+        sv(-0.55)
+
+        self.embed()
         # ImageMobject
 
 
@@ -273,7 +442,7 @@ class WhatIsNewtons(AbstractNewtonsMethodRealVisualisation):
 
         add_wait(self)
 
-        method_title = Text("Newtons Method")
+        method_title = TexText("Newtons Method")
 
         self.play(FadeIn(method_title))
 

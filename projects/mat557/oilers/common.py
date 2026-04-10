@@ -25,7 +25,8 @@ class AbstractNewtonsMethodRealVisualisation(Slide):
     x0 = ValueTracker(0)
     axes: Axes
     func_graph: ParametricCurve
-    limit_point: VMobject
+    limit_point: GlowDot
+    n = 0
 
     def setup_graphs(self):
         self.make_axes()
@@ -63,12 +64,12 @@ class AbstractNewtonsMethodRealVisualisation(Slide):
         )
         return self.x0_marker
 
-    def make_function(self, function=None, bind=False):
+    def make_function(self, function=None, bind=True):
         if function is not None:
             self.function = function
 
         self.func_graph = self.axes.get_graph(
-            function=lambda t: self.function(t), bind=True
+            function=lambda t: self.function(t), bind=bind
         )
         return self.func_graph
 
@@ -80,7 +81,7 @@ class AbstractNewtonsMethodRealVisualisation(Slide):
         if deriv is not None:
             return deriv(z)
 
-        if self.function is Polynomial:
+        if self.function.deriv != None:
             return self.function.deriv()(z)
 
         raise Exception("No derivative")
@@ -91,6 +92,7 @@ class AbstractNewtonsMethodRealVisualisation(Slide):
         return self.axes
 
     def perform_one_step(self, speed: float = 0.8):
+        self.n += 1
         x = float(self.x0.get_value())
         f_x = self.f(x)
         m = self.df(x)
@@ -125,9 +127,9 @@ class AbstractNewtonsMethodRealVisualisation(Slide):
 
             return z
 
-        # self.limit_point.f_always.move_to(
-        #     lambda: self.func_graph.get_point_from_function(
-        #         np.real(limit_behavior(self.x0.get_value()))
-        #     )
-        # )
+        self.limit_point.f_always.move_to(
+            lambda: self.axes.input_to_graph_point(
+                np.real(limit_behavior(self.x0.get_value())), self.func_graph
+            )
+        )
         return self.limit_point
