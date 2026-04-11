@@ -15,12 +15,12 @@ from projects.mat557.oilers.common import *
 from projects.mat557.oilers.fractal import ROOT_COLORS_BRIGHT, ROOT_COLORS_DEEP
 from sympy import *
 
-ADD_WAIT_TIME = False
+ADD_WAIT_TIME = True
 
 
 def add_wait(slide):
     if ADD_WAIT_TIME:
-        slide.wait_time_between_slides = 1 if ADD_WAIT_TIME else 0
+        slide.wait_time_between_slides = 2 if ADD_WAIT_TIME else 0
 
 
 class FirstTitle(Slide):
@@ -90,7 +90,7 @@ class FirstTitle(Slide):
                 FadeIn(fractals_plane),
                 FadeIn(dot1),
                 FadeIn(dot2),
-                ShowCreation(arrows, run_time=1.5),
+                Write(arrows, run_time=1.5),
             ),
         )
 
@@ -282,7 +282,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         x0.set_value(-1)
 
         x0_label = VGroup(
-            Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
+            Tex("x_0", "=", t2c={"x_0": YELLOW}).to_corner(UL),
             DecimalNumber(float(x0.get_value()), num_decimal_places=4),
         )
 
@@ -301,8 +301,6 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
                     run_time=speed * 0.7,
                 )
             )
-
-        # x0_label[0].select_part(r"x_\d").f_always
 
         (
             x0_label[1]
@@ -349,10 +347,8 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.next_slide()
 
-        x0_label[0].become(
-            Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment="").to_corner(UL),
-        )
-        x0_label.arrange(RIGHT)
+        x0_label[0].become(Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment=""))
+        x0_label.arrange(RIGHT).to_corner(UL)
 
         self.play(
             FadeOut(ex_root),
@@ -459,10 +455,20 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         self.play(Write(title))
 
         tex_kw = {
-            "isolate": ["x_{n+1}", "x_n", "z_n", "z_{n+1}", "P", "P'", "f", "f'"],
+            "isolate": [
+                "P(x_n)",
+                "P'(x_n)",
+                "f(x_n)",
+                "f'(x_n)",
+                "x_{n+1}",
+                "x_n",
+                "z_n",
+                "z_{n+1}",
+            ],
             "t2c": {
-                "x_{n+1}": YELLOW,
-                "x_n": YELLOW,
+                "x_{n+1}": BLUE_B,
+                "x_n": BLUE_B,
+                "x": BLUE_B,
                 "z_{n+1}": BLUE_B,
                 "z_n": BLUE_B,
             },
@@ -483,64 +489,42 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         )
 
         generic_polynomial = Tex(
-            r"P(x) = c_0 + c_1 x + c_2 x^2 + c_3 x^3 + \cdots",
+            r"{P}(x) = c_0 + c_1 x + c_2 x^2 + c_3 x^3 + \cdots",
             isolate=[r"c_\d", r"x", r"z"],
             t2c=tex_kw["t2c"],
         ).next_to(newtons_tex_poly, DOWN)
 
         self.play(
-            TransformMatchingTex(
-                newtons_tex, newtons_tex_poly, key_map={"f": "P", "f'": "P'"}
-            ),
-            Write(newtons_tex),
+            TransformMatchingTex(newtons_tex, newtons_tex_poly),
+            Write(generic_polynomial),
         )
+
+        self.next_slide()
+
+        self.play(FadeOut(newtons_tex_poly), generic_polynomial.animate.center())
 
         self.next_slide()
 
         self.next_slide()
 
-        self.play(newtons_tex.animate.to_corner(), Write(generic_polynomial))
-
-        question = TexText(
-            r"What happens if $x_n , x_{n+1}$ are complex?", **tex_kw
-        ).next_to(generic_polynomial, DOWN)
-        self.play(Write(question))
-
-        self.next_slide()
-
-        self.play(
-            *(Indicate(part) for part in generic_polynomial.get_parts_by_tex("x"))
-        )
-
-        complex_poly = Tex(
-            r"P(z) = c_0 + c_1 z + c_2 z^2 + c_3 z^3 + \cdots",
-            isolate=[r"c_\d", r"x", r"z"],
-            t2c={"z": BLUE_B},
-        )
-
-        self.play(
-            TransformMatchingTex(
-                generic_polynomial, complex_poly, key_map={"x": "z"}, run_time=0.5
-            )
-        )
-
-        self.next_slide()
-
-        complex_root_poly = Tex(
-            r"P(z) = (z - r_1)(z - r_2)(z-r_3) \cdots (z-r_n)",
+        root_poly = Tex(
+            r"P(x) = (x - r_1)(x - r_2)(x-r_3)",
             isolate=[r"c_\d", r"x", r"z"],
             t2c={
                 r"r_1": RED_A,
                 r"r_2": GREEN_A,
                 r"r_3": BLUE_A,
                 r"r_n": GREY,
+                "z": BLUE_B,
+                "x": BLUE_B,
             },
         )
+
         self.play(
             TransformMatchingTex(
-                complex_poly,
-                complex_root_poly,
-                # path_arc=PI / 2,
+                generic_polynomial,
+                root_poly,
+                path_arc=PI / 8,
                 key_map={
                     "x": "z",
                     "c_0": "r_1",
@@ -548,16 +532,16 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
                     "c_2": "r_1",
                     "c_3": "r_n",
                 },
-            )
+            ),
         )
 
-        self.next_slide()
+        self.next_slide(loop=True)
 
         def swap_roots(i, j):
             self.play(
                 Swap(
-                    complex_root_poly.get_part_by_tex(f"r_{i}"),
-                    complex_root_poly.get_part_by_tex(f"r_{j}"),
+                    root_poly.get_part_by_tex(f"r_{i}"),
+                    root_poly.get_part_by_tex(f"r_{j}"),
                 )
             )
 
@@ -565,6 +549,175 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         swap_roots(2, 1)
         swap_roots(3, 1)
         swap_roots(3, 2)
+
+        self.next_slide()
+
+        thereom_of_alg = TexText(
+            r"Fundamental Thereom of Algebra $\longrightarrow r_1,r_2,r_3 \in \mathbb{C}$",
+            isolate=[r"c_\d", r"x", r"z"],
+            t2c={
+                r"r_1": RED_A,
+                r"r_2": GREEN_A,
+                r"r_3": BLUE_A,
+                r"r_n": GREY,
+                "z": BLUE_B,
+            },
+        ).shift(DOWN * 1)
+
+        self.play(
+            Write(thereom_of_alg),
+        )
+        self.play(
+            ShowCreationThenDestruction(
+                SurroundingRectangle(
+                    thereom_of_alg.get_part_by_tex("Fundamental Thereom of Algebra")
+                )
+            ),
+        )
+
+        self.next_slide()
+        self.play(*(m for m in self.mobjects))
+
+
+class NewtonComplex(Slide):
+    f: Polynomial = SIMPLE_POLY_EXAMPLES[1]
+    df: Polynomial = f.deriv()
+
+    def construct(self) -> None:
+        plane = ComplexPlane(faded_line_ratio=2)
+        plane.set_opacity(0.6)
+        plane.add_coordinate_labels()
+
+        isolate = ("z", "P'", "P", "=", "N", "r_1", "r_2", "r_3", "N")
+
+        t2c = {
+            "z": BLUE_A,
+            "r_1": RED_A,
+            "r_2": GREEN_A,
+            "r_3": BLUE_B,
+            "P": YELLOW_B,
+            "N": YELLOW_B,
+            "P'": YELLOW_B,
+            "f": YELLOW_B,
+        }
+
+        rule = (
+            VGroup(
+                Tex(
+                    r"N(z)= z- \frac{P(z)}{P'(z)} \\ ",
+                    t2c=t2c,
+                    isolate=isolate,
+                    font_size=30,
+                ),
+                Tex(
+                    r"P(z) = (z-r_1)(z-r_2)(z-r_3)",
+                    t2c=t2c,
+                    font_size=30,
+                ),
+            )
+            .arrange(DOWN, False, aligned_edge=LEFT)
+            .to_corner()
+        )
+
+        rule_backgrond = BackgroundRectangle(
+            rule,
+            buff=MED_SMALL_BUFF,
+            stroke_color=WHITE,
+            stroke_width=5,
+            stroke_opacity=1,
+        )
+
+        rule_group = VGroup(rule_backgrond, rule)
+
+        self.play(
+            ShowCreation(plane),
+            ShowCreation(rule_group),
+        )
+
+        z0 = ComplexValueTracker(1 + 0.5j)
+
+        z0_marker = Dot(
+            fill_color=BLUE_A,
+            radius=0.08,
+        )
+        z0_marker.f_always.move_to(lambda: plane.n2p(z0.get_value()))
+
+        z0_label = Tex("z_0", t2c={"z_0": BLUE_A}, font_size=45)
+        z0_label.always.next_to(z0_marker, buff=SMALL_BUFF)
+        z0_label.set_z_index(120)
+
+        self.path_iterations = 10
+        self.path_epsilon = 0.2
+
+        def newtons(z: complex):
+            return z - self.f(z) / self.df(z)
+
+        def sv(z: complex, run_time=1):
+            self.play(z0.animate(run_time=1).set_value(z))
+
+        def make_path():
+            lines = VGroup()
+
+            values = [complex(z0.get_value())]
+
+            for i in range(self.path_iterations):
+                z = values[-1]
+
+                zn = newtons(z)
+                values.append(zn)
+
+                distances = [
+                    np.linalg.norm(plane.n2p(zn) - plane.n2p(r)) for r in self.f.roots()
+                ]
+
+                if min(*distances) < 0.1:
+                    break
+
+            for i in range(len(values) - 1):
+                lines += Arrow(
+                    plane.n2p(values[i]),
+                    plane.n2p(values[i + 1]),
+                    fill_opacity=0.9,
+                    thickness=3 * (1 - float(i) / (len(values) - 1)),
+                    path_arc=-PI / 4,
+                    buff=0.01,
+                )
+
+            return lines
+
+        path = always_redraw(make_path)
+
+        self.next_slide()
+        self.play(FadeIn(z0_marker), FadeIn(z0_label))
+
+        self.next_slide()
+        self.play(Write(path))
+
+        def make_limit_point():
+            z = z0.get_value()
+            for _ in range(20):
+                z = z - self.f(z) / self.df(z)
+
+            dot = GlowDot(plane.n2p(z), radius=0.5)
+            dot.set_z_index(100)
+
+            d1, d2, d3 = (abs(z - r) for r in self.f.roots())
+
+            if d1 < d2 and d1 < d3:
+                dot.set_color(RED_A)
+            elif d2 < d1 and d2 < d3:
+                dot.set_color(GREEN_A)
+            elif d3 < d1 and d3 < d2:
+                dot.set_color(BLUE_B)
+            else:
+                return Group()
+            return dot
+
+        limit_point = always_redraw(make_limit_point)
+
+        self.play(FadeIn(limit_point))
+
+        self.embed()
 
 
 class NewtonCubic(Slide):
