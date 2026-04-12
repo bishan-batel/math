@@ -35,6 +35,11 @@ class FractalNewton(ShaderMobject):
         self.set_seed_space()
         self.set_iteration_coloring()
         self.set_epsilon()
+        self.set_width(FRAME_WIDTH * 1)
+        self.set_height(FRAME_HEIGHT * 1)
+
+    def set_should_break_on_convergence(self, state=True):
+        self.uniforms["u_should_break_on_convergence"] = state
 
     def set_epsilon(self, epsilon=1e-5):
         self.epsilon = epsilon

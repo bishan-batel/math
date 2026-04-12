@@ -679,8 +679,8 @@ class NewtonComplex(Slide):
                     plane.n2p(values[i + 1]),
                     fill_opacity=0.9,
                     thickness=3 * (1 - float(i) / (len(values) - 1)),
-                    path_arc=-PI / 4,
-                    buff=0.01,
+                    path_arc=-PI / 2,
+                    buff=0.0,
                 )
 
             return lines
@@ -718,6 +718,17 @@ class NewtonComplex(Slide):
         self.play(FadeIn(limit_point))
 
         self.embed()
+
+    mouse_pressed = False
+
+    def on_mouse_drag(self, point, d_point, buttons: int, modifiers: int) -> None:
+        pass
+
+    def on_mouse_press(self, point, button: int, mods: int) -> None:
+        self.mouse_pressed = True
+
+    def on_mouse_release(self, point, button: int, mods: int) -> None:
+        self.mouse_pressed = False
 
 
 class NewtonCubic(Slide):

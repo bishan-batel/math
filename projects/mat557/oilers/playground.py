@@ -24,7 +24,7 @@ class Playground(Slide):
 
     def construct(self):
         self.plane = (
-            ComplexPlane(x_range=(-5, 5), y_range=(-6, 6), faded_line_ratio=2)
+            ComplexPlane(x_range=(-10, 10), y_range=(-6, 6), faded_line_ratio=2)
             .add_coordinate_labels()
             .set_opacity(0.3)
         )
@@ -84,7 +84,7 @@ class Playground(Slide):
 
         self.fix_z0_to_midpoint = False
         self.show_path = True
-        self.path_iterations = 100
+        self.path_iterations = 20
 
         def make_path(z: complex):
             if self.fix_z0_to_midpoint:
@@ -117,27 +117,41 @@ class Playground(Slide):
                     zp = values[-2]
 
                 values.append(current_method(z=values[-1], zp=zp, zpp=zpp))
+                if abs(values[-1] - values[-2]) < 0.05:
+                    break
 
             values = [self.plane.n2p(z) for z in values]
 
             gradient = list(Color("White").range_to(Color("Red"), len(values)))
 
-            return (
-                VMobject(stroke_width=1.0, color=BLUE)
-                .set_points_as_corners(values)
-                .add(
-                    *(
-                        Dot(
-                            z,
-                            fill_color=gradient[i],
-                            stroke_color=gradient[i],
-                            radius=0.03 * (1.0 - float(i) / float(len(values))),
-                        ).set_color(gradient[i])
-                        for i, z in enumerate(values)
+            obj = VMobject(stroke_width=1.0, color=BLUE)
+
+            for i in range(len(values) - 1):
+                x = values[i]
+                xn = values[i + 1]
+                obj.add(
+                    Arrow(
+                        x,
+                        xn,
+                        buff=0.01,
+                        thickness=2 * (1 - float(i) / (len(values) - 1)),
+                        path_arc=PI / 4 / 4,
                     )
                 )
-                .set_submobject_colors_by_gradient(*gradient)
+
+            obj.add(
+                *(
+                    Dot(
+                        z,
+                        fill_color=gradient[i],
+                        stroke_color=gradient[i],
+                        radius=0.03 * (1.0 - float(i) / float(len(values))),
+                    ).set_color(gradient[i])
+                    for i, z in enumerate(values)
+                )
             )
+
+            return obj.set_submobject_colors_by_gradient(*gradient)
 
         # initial value
         self.tracker = self.roots[0]

@@ -34,6 +34,8 @@ uniform uint u_max_iterations = 500u;
 uniform vec3 u_color_infinity;
 uniform vec3 u_color_cycle;
 
+uniform uint u_should_break_on_convergence = 0u;
+
 uniform vec3 u_color1;
 uniform vec3 u_color2;
 uniform vec3 u_color3;
@@ -319,7 +321,7 @@ vec3 domain_color_complex(vec2 z) {
 
 vec3 limit_color_complex(
     vec2 z,
-    uint iterations,
+    float iterations,
     vec2 r1,
     vec2 r2,
     vec2 r3
@@ -346,15 +348,19 @@ vec3 limit_color_complex(
     color = rgb_to_oklch(color);
 
     if (u_do_iteration_coloring != 0u) {
-        // color *= 1.0f + pow(0.08f * float(iterations / float(u_max_iterations)) * 200.f, 2.f);
-        color.x += pow(
-                1E1f * pow(clamp(max(0., float(iterations)) / 100.f, 0., 1.), 5),
-                0.5f
-            );
+        // color.x += pow(
+        //     1E1f * pow(clamp(max(0., float(iterations)) / 100.f, 0., 1.), 5),
+        //     0.5f
+        // );
+        //
+
+        float saturation_factor = 5.0;
+        // iterations /= float(u_max_iterations);
+        color.xy *= 1.0 + (0.01 * saturation_factor) * (iterations - 2 * saturation_factor);
     }
 
-    color.x = clamp(color.x, 0., 1.);
-    color.y = clamp(color.y, 0., 1.);
+    // color.x = clamp(color.x, 0., 1.);
+    // color.y = clamp(color.y, 0., 1.);
 
     color = oklch_to_rgb(color);
 
@@ -393,18 +399,37 @@ void iteration_setup(vec2 initial_z, inout vec2 z, inout vec2 zp, inout vec2 zpp
         z = initial_z;
     }
 }
-
-vec2 iterate_method(vec2 initial_z, out uint i, uint iter_mode) {
+vec2 iterate_method(vec2 initial_z, out uint i, uint iter_mode, out float fiters) {
     vec2 zpp, zp, z;
 
     iteration_setup(initial_z, z, zp, zpp, iter_mode);
 
+    float curr_len;
+
     for (i = 0u; i < u_max_iterations; i++) {
+        vec2 previous_z = z;
+
         single_iteration(z, zp, zpp, u_root1, u_root2, u_root3, iter_mode);
 
-        if (min_root_distance(z, u_root1, u_root2, u_root3) < u_epsilon) {
-            break;
+        fiters = float(i);
+        curr_len = length(previous_z - z);
+
+        if (u_should_break_on_convergence == 0u) {
+            if (curr_len < u_epsilon) {
+                break;
+            }
         }
+        else {
+            if (min_root_distance(z, u_root1, u_root2, u_root3) < u_epsilon) {
+                break;
+            }
+        }
+    }
+
+    float e = abs(min_root_distance(z, u_root1, u_root2, u_root3));
+
+    if (u_should_break_on_convergence == 0u) {
+        fiters -= log(curr_len) / log(u_epsilon);
     }
 
     return z;
@@ -436,13 +461,14 @@ void main() {
 
     if (u_parametric == 0u) {
         uint iterations;
+        float f_iters;
 
-        vec2 z = iterate_method(pixel_z, iterations, u_mode);
+        vec2 z = iterate_method(pixel_z, iterations, u_mode, f_iters);
 
         if (u_color_mode == COLOR_DOMAIN) {
             color = domain_color_complex(z);
         } else if (u_color_mode == COLOR_LIMITING) {
-            color = limit_color_complex(z, iterations, u_root1, u_root2, u_root3);
+            color = limit_color_complex(z, f_iters, u_root1, u_root2, u_root3);
         }
     } else if (u_parametric == 1u) {
         uint iterations;
