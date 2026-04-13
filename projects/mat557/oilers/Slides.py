@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 
 from custom.portrait import *
 from projects.mat557.oilers.common import *
-from projects.mat557.oilers.fractal import ROOT_COLORS_BRIGHT, ROOT_COLORS_DEEP
+from projects.mat557.oilers.fractal import (
+    ROOT_COLORS_BRIGHT,
+    ROOT_COLORS_DEEP,
+    FractalNewton,
+)
 from sympy import *
 
 ADD_WAIT_TIME = True
@@ -1050,13 +1054,13 @@ class NewtonComplex(ThreeDSlide):
                 )
             )
 
+        iteration_color_dots()
+
         self.next_slide(
             notes="If we sort of 'unwind' all of these points back to there starting positions"
         )
 
         unwind()
-
-        iteration_color_dots()
 
         self.next_slide(
             notes="Something weird shappens at the boundry, the third color seems to be butting in"
@@ -1097,22 +1101,41 @@ class NewtonComplex(ThreeDSlide):
         points_history = [self.make_points(80)]
 
         self.play(
-            dots.animate(run_time=0.5).set_color(WHITE),
-            dots.animate.set_points(points2coords(points_history[-1])).set_color(WHITE),
+            dots.animate(run_time=0.5).set_color(GREY_B),
+            dots.animate.set_points(points2coords(points_history[-1])).set_color(
+                GREY_B
+            ),
         )
 
-        for _ in range(5):
-            take_step(0.35, draw_arrows=True)
-        for _ in range(5):
-            take_step(0.25, draw_arrows=False)
         for _ in range(10):
-            take_step(0.1, draw_arrows=False)
+            take_step(0.35, False)
+        for _ in range(10):
+            take_step(0.1, False)
 
         self.next_slide(notes="We unwind and color again")
 
         iteration_color_dots(0.5)
         unwind(0.25)
 
+        self.next_slide(
+            notes="This shape at the boundries seems to contain more and more of these blobs, but to get a full appreciation - we need to go to an even higher resolution - if you kepts increasing and increasing the amount of points you sample, doing this game for every single pixel on the screen, this is what you would get"
+        )
+
+        fractal = FractalNewton(roots=[0, 0, 0])
+        fractal_opacity = ValueTracker(0)
+        fractal.f_always.set_roots(lambda: [r.get_value() for r in self.roots])
+        fractal.f_always.set_opacity(lambda: fractal_opacity.get_value())
+        fractal.set_z_index(-1)
+        fractal.set_iteration_coloring(False)
+
+        self.add(fractal)
+        self.play(
+            FadeOut(dots),
+            FadeOut(roots),
+            plane.animate.set_opacity(0.15),
+            *(dot.animate.set_opacity(0.5) for dot in roots),
+            fractal_opacity.animate.set_value(1.0),
+        )
         self.embed()
 
     def make_points(self, density=20) -> Iterable[complex]:
@@ -1137,6 +1160,77 @@ class NewtonComplex(ThreeDSlide):
         elif d3 < d1 and d3 < d2:
             return ROOT_COLORS_DEEP[2]
         return None
+
+
+class AbstractNewtonFractalIntro(Slide):
+    roots = [ComplexValueTracker(r) for r in SIMPLE_POLY_EXAMPLES[2].roots()]
+
+    def f(self, z: complex):
+        return Polynomial.fromroots([r.get_value() for r in self.roots])(z)
+
+    def df(self, z: complex):
+        return Polynomial.fromroots([r.get_value() for r in self.roots]).deriv()(z)
+
+    def newtons(self, z: complex):
+        return z - self.f(z) / self.df(z)
+
+    def make_fractal(self) -> FractalNewton:
+        self.fractal = FractalNewton([r.get_value() for r in self.roots])
+        self.fractal.f_always.set_roots(lambda: [r.get_value() for r in self.roots])
+        self.fractal.set_z_index(-1)
+        self.fractal.pin(self)
+        return self.fractal
+
+    def make_plane(self) -> ComplexPlane:
+        self.plane = ComplexPlane(faded_line_ratio=2)
+        self.plane.add_coordinate_labels()
+        self.plane.set_opacity(0.15)
+        return self.plane
+
+    def make_root_dots(self, radius=0.07) -> VGroup[Dot]:
+        self.root_dots = VGroup(
+            *(
+                Dot(
+                    fill_color=color,
+                    stroke_color=BLACK,
+                    stroke_width=2,
+                    opacity=0.5,
+                    radius=radius,
+                )
+                for color in ROOT_COLORS_DEEP
+            )
+        )
+
+        self.root_trails = VGroup()
+
+        for dot, root in zip(self.root_dots, self.roots):
+            dot.f_always.move_to(lambda: root.get_value())
+            self.root_trails.add(TracingTail(dot, stroke_color=dot.fill_color))
+
+        return self.root_dots
+
+    def construct(self):
+        add_wait(self)
+
+
+class NewtonFractalIntroduction(AbstractNewtonFractalIntro):
+    def construct(self):
+        super().construct()
+
+        plane = self.make_plane()
+        fractal = self.make_fractal()
+        fractal.set_iteration_coloring(False)
+        self.add(plane, fractal)
+
+        self.frame.save_state()
+        self.next_slide(notes="amazing")
+
+        self.play(
+            self.frame.animate.move_to([-1.4324704e00, 8.6061301e-04, 0]).set_scale(
+                0.073097974
+            )
+        )
+        self.embed()
 
 
 class NewtonCubic(Slide):

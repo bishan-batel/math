@@ -19,11 +19,24 @@ def c2v(a: complex):
 
 
 class FractalNewton(ShaderMobject):
-    def __init__(self, roots, scale_factor=1, colors=ROOT_COLORS_DEEP, **kwargs):
+    scene: Scene | None = None
+
+    def __init__(
+        self,
+        roots,
+        scale_factor=1,
+        colors=ROOT_COLORS_DEEP,
+        opacity=1.0,
+        **kwargs,
+    ):
         from pathlib import Path
 
         dir = f"{Path(__file__).resolve().parent}/newton"
-        super().__init__(shader_folder=dir, **kwargs)
+        super().__init__(
+            shader_folder=dir,
+            opacity=opacity,
+            **kwargs,
+        )
 
         self.set_max_iterations()
         self.set_roots(roots)
@@ -38,16 +51,25 @@ class FractalNewton(ShaderMobject):
         self.set_width(FRAME_WIDTH * 1)
         self.set_height(FRAME_HEIGHT * 1)
 
+    def pin(self, scene: Scene):
+        self.scene = scene
+        self.always._pin_update()
+
+    def _pin_update(self):
+        if self.scene is None:
+            return
+        self.replace(self.scene.frame, stretch=True)
+
     def set_should_break_on_convergence(self, state=True):
         self.uniforms["u_should_break_on_convergence"] = state
 
-    def set_epsilon(self, epsilon=1e-5):
+    def set_epsilon(self, epsilon=1e-3):
         self.epsilon = epsilon
         self.uniforms["u_epsilon"] = epsilon
 
     def set_max_iterations(self, iterations=100):
         self.max_iterations = iterations
-        self.uniforms["u_max_iterations"] = iterations
+        self.uniforms["u_max_iterations"] = int(iterations)
 
     def set_infinity_color(self, color=WHITE):
         self.infinity_color = color
@@ -97,6 +119,13 @@ class FractalNewton(ShaderMobject):
 
     def set_z0(self, z0: complex):
         self.uniforms["u_z0"] = c2v(z0)
+
+    def set_opacity(self, opacity: float):
+        self.opacity = opacity
+        self.uniforms["u_opacity"] = opacity
+
+    def get_opacity(self):
+        return self.opacity
 
     def polynomial(self):
         return Polynomial.fromroots(self.roots)

@@ -49,6 +49,7 @@ class Playground(Slide):
         scale_factor = ValueTracker(1)
         fractal = FractalNewton(roots=[r.get_value() for r in self.roots])
         fractal.set_z_index(-20)
+        fractal.pin(self)
         fractal.f_always.set_scale_factor(lambda: scale_factor.get_value())
         fractal.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
         fractal.f_always.set_mode(lambda: method_to_mode(self.method))
@@ -193,6 +194,11 @@ class Playground(Slide):
         self.next_slide()
 
         self.next_slide(loop=True, auto_next=True)
+
+    def on_resize(self, width: int, height: int) -> None:
+        if self.window is not None:
+            self.window.fixed_aspect_ratio = float(FRAME_WIDTH) / float(FRAME_HEIGHT)
+            self.window.set_default_viewport()
 
     def on_mouse_drag(self, point, d_point, buttons: int, modifiers: int):
         p = point[0] + 1j * point[1]

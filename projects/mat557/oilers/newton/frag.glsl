@@ -53,6 +53,8 @@ uniform uint u_color_mode = COLOR_LIMITING;
 uniform uint u_do_iteration_coloring = 1u;
 uniform uint u_parametric = 0u;
 
+uniform float u_opacity = 1.0;
+
 in vec3 xyz_coords;
 
 out vec4 frag_color;
@@ -506,5 +508,5 @@ void main() {
         color *= 1.0 * smoothstep(0., 0.1, max_dist);
     }
 
-    frag_color = finalize_color(vec4(color, 1.), xyz_coords, vec3(0.0, 0.0, 1.0));
+    frag_color = finalize_color(vec4(color, u_opacity), xyz_coords, vec3(0.0, 0.0, 1.0));
 }
