@@ -1,6 +1,7 @@
 # pyright: reportGeneralTypeIssues=false
 
 from re import Pattern
+from subprocess import run
 import sys
 import os
 
@@ -47,6 +48,7 @@ def add_wait(slide: Slide):
 
     slide.on_resize = on_resize
 
+    slide.leave_progress_bars = True
     if ADD_WAIT_TIME:
         slide.wait_time_between_slides = 2 if ADD_WAIT_TIME else 0
 
@@ -938,7 +940,6 @@ class NewtonComplex(ThreeDSlide):
                 r.animate.set_value(nr)
                 for (r, nr) in zip(self.roots, SIMPLE_POLY_EXAMPLES[2].roots())
             ),
-            # z0.animate.set_value(0),
         )
         self.wait(1)
 
@@ -950,39 +951,184 @@ class NewtonComplex(ThreeDSlide):
         self.wait(1)
 
         self.next_slide(
-            notes="This is where the cool stuff begins, lets see what a whole array of seed values will do"
+            notes="This is where the cool stuff begins, lets see what a whole array of seed values will do, lets spread a bunch of different values across the plane"
         )
 
+        self.remove(z0_marker_trail)
+
+        path.suspend_updating()
         self.play(
             FadeOut(z0_marker),
             FadeOut(z0_label),
-            FadeOut(z0_marker_trail),
             FadeOut(rule_group),
+            FadeOut(path),
+            FadeOut(limit_point),
         )
+        path.resume_updating()
 
-        RE, IM = np.mgrid[-6:6:20j, -4:4:20j]
-        points = flatten(RE + IM * 1j)
+        points_history = [self.make_points()]
+
+        def points2coords(points):
+            return [plane.n2p(point) for point in points]
 
         dots = DotCloud(
             radius=0.04,
             color=WHITE,
-            points=np.array([plane.n2p(c) for c in points]),
+            points=points2coords(points_history[-1]),  # pyright: ignore
         )
 
-        # def iterate():
-        #     points = [ newtons(z) for z in dots.get_]
+        def take_step(run_time=0.8, draw_arrows=True):
+            points_history.append([newtons(z) for z in points_history[-1]])
+
+            step_dir = [
+                (zp, (z - zp)) for z, zp in zip(points_history[-1], points_history[-2])
+            ]
+
+            arrows = VGroup()
+            if draw_arrows:
+                arrows.add(
+                    *(
+                        Arrow(
+                            start=plane.n2p(z),
+                            end=plane.n2p(
+                                z + (dir / abs(dir)) * max(min(0.3, abs(dir)), 0.0)
+                            ),
+                            thickness=1,
+                            buff=0.00,
+                            fill_color=WHITE,
+                            fill_opacity=0.5,
+                        )
+                        for (z, dir) in step_dir
+                    )
+                )
+                self.play(FadeIn(arrows, run_time=run_time))
+
+            self.play(
+                dots.animate(run_time=run_time).set_points(
+                    points2coords(points_history[-1])
+                ),
+                FadeOut(arrows, run_time=run_time),
+            )
+
+        def unwind(run_time=0.5):
+            for points in points_history[::-1]:
+                self.play(
+                    dots.animate(run_time=run_time).set_points(points2coords(points))
+                )
 
         self.play(ShowCreation(dots))
 
-        self.next_slide()
+        self.next_slide(notes="We can see how all the points step forward")
+
+        take_step()
+
+        self.next_slide(
+            notes="As we keep iterating, notice how (like as we saw before) points near each root pretty quickly getting nestled in, while some points bounce around and get flung out really far before converging"
+        )
+
+        for _ in range(5):
+            take_step()
+
+        self.next_slide(
+            notes="If we just keep iterating, it seems like most points do hit the roots"
+        )
+
+        for _ in range(10):
+            take_step(0.5)
+
+        self.next_slide(
+            notes="We can color each starting point by what root it converged into"
+        )
+
+        def iteration_color_dots(run_time=0.8):
+            self.play(
+                dots.animate(run_time=run_time).set_color(
+                    [
+                        self.point_to_root_color(z, epsilon=1e20, if_none=BLACK)
+                        for z in points_history[-1]
+                    ]
+                )
+            )
+
+        self.next_slide(
+            notes="If we sort of 'unwind' all of these points back to there starting positions"
+        )
+
+        unwind()
+
+        iteration_color_dots()
+
+        self.next_slide(
+            notes="Something weird shappens at the boundry, the third color seems to be butting in"
+        )
+
+        self.frame.save_state()
+
+        self.play(self.frame.animate.scale(0.5).shift(DOWN + RIGHT))
+        self.wait(1)
+        self.play(self.frame.animate.shift(UP + LEFT * 3))
+
+        self.next_slide(notes="Zooming out however")
+        self.play(self.frame.animate.restore())
+
+        self.next_slide(
+            notes="This isn't really enough resolution to get the full picture, so lets double the number"
+        )
+
+        points_history = [self.make_points(40)]
+
+        self.play(
+            dots.animate(run_time=0.5).set_color(WHITE),
+            dots.animate.set_points(points2coords(points_history[-1])).set_color(WHITE),
+        )
+
+        self.next_slide(notes="We then play this same game of iteration")
+
+        for _ in range(10):
+            take_step(0.5)
+
+        self.next_slide(notes="We color and then unwind")
+
+        iteration_color_dots()
+        unwind()
+
+        self.next_slide(notes="Even this doesnt seem to be enough resolution")
+
+        points_history = [self.make_points(80)]
+
+        self.play(
+            dots.animate(run_time=0.5).set_color(WHITE),
+            dots.animate.set_points(points2coords(points_history[-1])).set_color(WHITE),
+        )
+
+        for _ in range(5):
+            take_step(0.35, draw_arrows=True)
+        for _ in range(5):
+            take_step(0.25, draw_arrows=False)
+        for _ in range(10):
+            take_step(0.1, draw_arrows=False)
+
+        self.next_slide(notes="We unwind and color again")
+
+        iteration_color_dots(0.5)
+        unwind(0.25)
 
         self.embed()
 
-    def point_to_root_color(self, z: complex, epsilon=1e-1):
+    def make_points(self, density=20) -> Iterable[complex]:
+        RE, IM = np.mgrid[-6 : 6 : density * 1j, -4 : 4 : density * 1j]
+        return flatten(RE + IM * 1j)
+
+    def point_to_root_color(
+        self,
+        z: complex,
+        epsilon: float = 1e-1,
+        if_none: Color | None = None,
+    ):
         d1, d2, d3 = (abs(z - r.get_value()) for r in self.roots)
 
         if min(d1, d2, d3) > epsilon:
-            return None
+            return if_none
 
         if d1 < d2 and d1 < d3:
             return ROOT_COLORS_DEEP[0]
@@ -991,17 +1137,6 @@ class NewtonComplex(ThreeDSlide):
         elif d3 < d1 and d3 < d2:
             return ROOT_COLORS_DEEP[2]
         return None
-
-    mouse_pressed = False
-
-    def on_mouse_drag(self, point, d_point, buttons: int, modifiers: int) -> None:
-        pass
-
-    def on_mouse_press(self, point, button: int, mods: int) -> None:
-        self.mouse_pressed = True
-
-    def on_mouse_release(self, point, button: int, mods: int) -> None:
-        self.mouse_pressed = False
 
 
 class NewtonCubic(Slide):
