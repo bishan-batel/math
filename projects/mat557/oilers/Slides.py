@@ -53,7 +53,7 @@ def add_wait(slide: Slide):
     slide.on_resize = on_resize
 
     slide.leave_progress_bars = True
-    if ADD_WAIT_TIME:
+    if ADD_WAIT_TIME and slide.window is not None:
         slide.wait_time_between_slides = 2 if ADD_WAIT_TIME else 0
 
 
