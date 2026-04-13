@@ -1226,10 +1226,28 @@ class NewtonFractalIntroduction(AbstractNewtonFractalIntro):
         self.next_slide(notes="amazing")
 
         self.play(
-            self.frame.animate.move_to([-1.4324704e00, 8.6061301e-04, 0]).set_scale(
-                0.073097974
-            )
+            self.frame.animate(run_time=5, rate_func=slow_into)
+            .set_width(0.9004003)
+            .move_to([-1.4324704e00, 8.6061301e-04, 0]),
         )
+
+        self.next_slide()
+
+        self.play(
+            self.frame.animate(run_time=8, rate_func=slow_into)
+            .set_width(0.00478518)
+            .move_to([-1.522637, -0.05915671, 0.0]),
+        )
+
+        self.next_slide(notes="Zooming back out")
+        self.play(self.frame.animate.restore())
+
+        self.next_slide(
+            notes="Moving along (or into) just staring at the pretty image - we can additionally color each pixel loosely on *how slow* it converges to said root"
+        )
+
+        fractal.set_iteration_coloring(True)
+
         self.embed()
 
 
