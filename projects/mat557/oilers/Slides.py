@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
 from manimlib import *
-from manimlib.utils import rate_functions  # pyright: ignore
+from manimlib.utils import rate_functions
+from scipy.spatial.transform import rotation  # pyright: ignore
 
 if TYPE_CHECKING:
     from manimlib import Vect2, Vect3
@@ -24,7 +25,28 @@ from sympy import *
 ADD_WAIT_TIME = True
 
 
-def add_wait(slide):
+wait_did_fullscreen = False
+
+
+def add_wait(slide: Slide):
+    old = slide.on_resize
+
+    if slide.window is not None:
+        slide.window.fixed_aspect_ratio = 3024.0 / 1964.0
+        slide.window.set_default_viewport()
+
+    def on_resize(width: int, height: int):
+        if slide.window is not None:
+            slide.window.fixed_aspect_ratio = 3024.0 / 1964.0
+            slide.window.set_default_viewport()
+            global wait_did_fullscreen
+            if wait_did_fullscreen is not True:
+                slide.window.fullscreen = True
+                wait_did_fullscreen = True
+        old(width, height)
+
+    slide.on_resize = on_resize
+
     if ADD_WAIT_TIME:
         slide.wait_time_between_slides = 2 if ADD_WAIT_TIME else 0
 
@@ -391,7 +413,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         limiting_path = always_redraw(make_path)
 
-        roots: list[float] = self.function.roots()
+        roots: list[float] = self.function.roots()  # pyright: ignore
         about_roots = [roots[0] - 0.5, roots[1] - 0.4, roots[2] + 0.5]
 
         self.play(ShowCreation(limiting_path), FadeIn(limit_point))
@@ -635,21 +657,27 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
 
 
 class NewtonComplex(ThreeDSlide):
-    f: Polynomial = SIMPLE_POLY_EXAMPLES[1]
-    df: Polynomial = f.deriv()
+    roots = [ComplexValueTracker(r) for r in SIMPLE_POLY_EXAMPLES[1].roots()]
+
+    def f(self, z: complex):
+        return Polynomial.fromroots([r.get_value() for r in self.roots])(z)
+
+    def df(self, z: complex):
+        return Polynomial.fromroots([r.get_value() for r in self.roots]).deriv()(z)
 
     def construct(self) -> None:
+        add_wait(self)
         plane = ComplexPlane(faded_line_ratio=2)
-        plane.set_opacity(0.6)
         plane.add_coordinate_labels()
+        plane.set_opacity(0.5)
 
         isolate = ("z", "P'", "P", "=", "N", "r_1", "r_2", "r_3", "N")
 
         t2c = {
             "z": BLUE_A,
-            "r_1": RED_A,
-            "r_2": GREEN_A,
-            "r_3": BLUE_B,
+            "r_1": ROOT_COLORS_DEEP[0],
+            "r_2": ROOT_COLORS_DEEP[1],
+            "r_3": ROOT_COLORS_DEEP[2],
             "P": YELLOW_B,
             "N": YELLOW_B,
             "P'": YELLOW_B,
@@ -691,36 +719,26 @@ class NewtonComplex(ThreeDSlide):
             ShowCreation(rule_group),
         )
 
-        z0 = ComplexValueTracker(1 + 0.5j)
+        z0 = ComplexValueTracker(0)
 
         z0_marker = Dot(
             fill_color=BLUE_A,
             radius=0.08,
         )
-
-        self.z0_controls_marker = False
-
-        def update_z0(m):
-            if self.z0_controls_marker:
-                z0_marker.move_to(plane.n2p(z0.get_value()))
-            else:
-                z0.set_value(plane.p2n(z0_marker.get_center()))
-            return z0_marker
-
-        z0_marker.add_updater(update_z0)
+        z0_marker.set_z_index(120)
+        z0_marker.f_always.move_to(lambda: plane.n2p(z0.get_value()))
 
         z0_label = Tex("z_0", t2c={"z_0": BLUE_A}, font_size=45)
-        z0_label.always.next_to(z0_marker, buff=SMALL_BUFF)
+        z0_label.always.next_to(z0_marker, UP, buff=SMALL_BUFF)
         z0_label.set_z_index(120)
 
-        self.path_iterations = 10
+        self.path_iterations = ValueTracker(1)
         self.path_epsilon = 0.2
 
         def newtons(z: complex):
             return z - self.f(z) / self.df(z)
 
         def sv(z: complex, run_time=1):
-            z0.set_value(1)
             self.play(z0.animate(run_time=1).set_value(z))
 
         def make_path():
@@ -728,14 +746,15 @@ class NewtonComplex(ThreeDSlide):
 
             values = [complex(z0.get_value())]
 
-            for i in range(self.path_iterations):
+            for i in range(round(self.path_iterations.get_value())):
                 z = values[-1]
 
                 zn = newtons(z)
                 values.append(zn)
 
                 distances = [
-                    np.linalg.norm(plane.n2p(zn) - plane.n2p(r)) for r in self.f.roots()
+                    np.linalg.norm(plane.n2p(zn) - plane.n2p(r.get_value()))
+                    for r in self.roots
                 ]
 
                 if min(*distances) < 0.1:
@@ -761,23 +780,10 @@ class NewtonComplex(ThreeDSlide):
 
         path = make_path().add_updater(lambda m: m.become(make_path()))
 
-        self.next_slide(
-            notes="Like before in the real number case, we start with some initial 'seed value' z0"
-        )
-
-        z0_marker_trail = TracingTail(z0_marker, stroke_color=BLUE_A)
-        self.play(FadeIn(z0_marker), FadeIn(z0_label))
-        self.add(z0_marker_trail)
-
-        self.next_slide()
-
-        self.path_iterations = 1
-        self.play(Write(path))
-
         def make_limit_point():
             z = z0.get_value()
-            for _ in range(20):
-                z = z - self.f(z) / self.df(z)
+            for _ in range(50):
+                z = newtons(z)
 
             color = self.point_to_root_color(z)
 
@@ -792,7 +798,33 @@ class NewtonComplex(ThreeDSlide):
 
         limit_point = always_redraw(make_limit_point)
 
-        self.play(FadeIn(limit_point))
+        def make_root_dot(i):
+            dot = Dot(
+                fill_color=ROOT_COLORS_DEEP[i],
+                stroke_color=BLACK,
+                stroke_width=3,
+                opacity=0.5,
+                radius=0.1,
+            )
+
+            dot.f_always.move_to(lambda: plane.n2p(self.roots[i].get_value()))
+
+            return dot
+
+        roots = VGroup(*(make_root_dot(i) for i in range(3)))
+
+        roots_tails = VGroup(*(TracingTail(dot, color=dot.fill_color) for dot in roots))
+
+        self.next_slide(
+            notes="I will also be adding this little limit point and root points so you know which root is being converged to, and what the roots are"
+        )
+
+        self.add(roots_tails)
+        self.play(FadeIn(roots))
+
+        self.next_slide(
+            notes="Something also I want to note is that we are going to be looking at the same cubic as before, except now as a function from C to C"
+        )
 
         real_axes = Axes(x_range=plane.x_range)
         real_axes.add_coordinate_labels()
@@ -805,8 +837,7 @@ class NewtonComplex(ThreeDSlide):
             self.frame.animate.rotate(90 * DEG, axis=RIGHT),
         )
 
-        self.wait(5)
-        self.next_slide()
+        self.next_slide(notes="Returning back, we can see what z0 does")
 
         self.play(
             self.frame.animate.rotate(-90 * DEG, axis=RIGHT),
@@ -814,20 +845,151 @@ class NewtonComplex(ThreeDSlide):
             FadeOut(real_graph),
         )
 
+        self.next_slide(
+            notes="Like before in the real number case, we start with some initial 'seed value' z0"
+        )
+
+        z0_marker_trail = TracingTail(z0_marker, stroke_color=BLUE_A)
+        self.play(FadeIn(z0_marker), FadeIn(z0_label))
+        self.add(z0_marker_trail)
+
+        self.next_slide(notes="And we can move around and what not, ")
+
+        self.play(z0.animate.set_value(-0.5))
+        self.play(z0.animate.set_value(0.3))
+        self.play(z0.animate.set_value(-2))
+
+        self.next_slide(
+            notes="Im going to put it here since we know from before its just going to go to tis leftmost root"
+        )
+
+        self.play(z0.animate.set_value(-5), CircleIndicate(roots[0]))
+
+        self.next_slide(
+            notes="While in the real number graph case we have this nice visual intuition with tangent lines and zeroes - we can still play the same game with complex numbers and take a step"
+        )
+
+        self.path_iterations = ValueTracker(1)
+
+        l_path = make_path()
+        self.play(Write(l_path))
+
+        self.next_slide(notes="Then another one")
+        self.path_iterations.set_value(2)
+
+        l_path2 = make_path()
+        self.play(Transform(l_path, l_path2))
+
+        self.next_slide(notes="And so on and so on")
+
+        self.remove(l_path)
+        self.remove(l_path2)
+        self.add(path)
+        self.play(self.path_iterations.animate.set_value(10))
+
+        self.next_slide(
+            notes="And I will also make the root that z0 will eventually hit glow"
+        )
+
+        self.play(FadeIn(limit_point))
+
+        self.next_slide(
+            notes="We can play this same game now except we can see what this will do for an complex starting point"
+        )
+
+        self.play(z0.animate.set_value(-2))
+
+        self.play(z0.animate.set_value(-1))
+
+        self.next_slide(
+            notes="And we can see this strange slower convergence happens on the boundry again"
+        )
+
+        self.path_iterations.set_value(100)
+
+        sv(-0.5)
+        sv(-0.6)
+        sv(-0.59)
+        sv(-0.5781)
+        sv(-0.5780)
+
+        self.next_slide(
+            notes="If we move around our z value in the complex plane, we can see this 'boundry chaos' seems to persist even there"
+        )
+
+        def rotate_z0(rotations=20, rotation_time=8.0, rotation_radius=2):
+            for i in range(rotations):
+                angle = (float(i + 1) / rotations) * 360 * DEG
+                self.play(
+                    z0.animate(
+                        run_time=(rotation_time / float(rotations)), rate_func=linear
+                    ).set_value(rotation_radius * exp(1j * angle))
+                )
+
+        rotate_z0()
+
+        self.wait(1)
+        self.next_slide(
+            notes="Now I'm going to do the same thing with a polynomial that does have complex roots"
+        )
+
+        self.play(
+            *(
+                r.animate.set_value(nr)
+                for (r, nr) in zip(self.roots, SIMPLE_POLY_EXAMPLES[2].roots())
+            ),
+            # z0.animate.set_value(0),
+        )
+        self.wait(1)
+
+        self.next_slide(
+            notes="And notice that even with a different polynomial this behavior continues"
+        )
+        rotate_z0()
+
+        self.wait(1)
+
+        self.next_slide(
+            notes="This is where the cool stuff begins, lets see what a whole array of seed values will do"
+        )
+
+        self.play(
+            FadeOut(z0_marker),
+            FadeOut(z0_label),
+            FadeOut(z0_marker_trail),
+            FadeOut(rule_group),
+        )
+
+        RE, IM = np.mgrid[-6:6:20j, -4:4:20j]
+        points = flatten(RE + IM * 1j)
+
+        dots = DotCloud(
+            radius=0.04,
+            color=WHITE,
+            points=np.array([plane.n2p(c) for c in points]),
+        )
+
+        # def iterate():
+        #     points = [ newtons(z) for z in dots.get_]
+
+        self.play(ShowCreation(dots))
+
+        self.next_slide()
+
         self.embed()
 
     def point_to_root_color(self, z: complex, epsilon=1e-1):
-        d1, d2, d3 = (abs(z - r) for r in self.f.roots())
+        d1, d2, d3 = (abs(z - r.get_value()) for r in self.roots)
 
-        if min(d1, d2, d3) < epsilon:
+        if min(d1, d2, d3) > epsilon:
             return None
 
         if d1 < d2 and d1 < d3:
-            return RED_A
+            return ROOT_COLORS_DEEP[0]
         elif d2 < d1 and d2 < d3:
-            return GREEN_A
+            return ROOT_COLORS_DEEP[1]
         elif d3 < d1 and d3 < d2:
-            return BLUE_B
+            return ROOT_COLORS_DEEP[2]
         return None
 
     mouse_pressed = False

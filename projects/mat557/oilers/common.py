@@ -8,6 +8,7 @@ from manim_slides.slide import Slide
 SIMPLE_POLY_EXAMPLES = [
     Polynomial(coef=[2, -1, 4, -2]) * 0.1,
     Polynomial(coef=[0.3, -2, 0, 1]),
+    Polynomial(coef=[1, 0, 0, -1]),
 ]
 
 FIXED_POINT_EXAMPLES: list[tuple[complex, complex, complex]] = [
