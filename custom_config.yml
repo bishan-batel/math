@@ -3,8 +3,8 @@
 mirror_module_path: True
 window:
   position_string: UR
-  monitor_index: 0
-  full_screen: false
+  monitor_index: 1
+  full_screen: True
 camera:
   resolution: (3024, 1964)
   background_color: "#000000"
@@ -18,5 +18,5 @@ text:
 tex:
   template: "default"
 embed:
-  autoreload: false
+  autoreload: true
   ignore_manimlib_modules_on_reload: true

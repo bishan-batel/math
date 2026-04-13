@@ -5,9 +5,15 @@ import sys
 import os
 
 
-from manim_slides.slide import Slide
+from typing import TYPE_CHECKING
+
+from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
-from manimlib import *  # pyright: ignore
+from manimlib import *
+from manimlib.utils import rate_functions  # pyright: ignore
+
+if TYPE_CHECKING:
+    from manimlib import Vect2, Vect3
 
 
 from custom.portrait import *
@@ -474,6 +480,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             },
         }
 
+        # fomula for newtons method
         newtons_tex = Tex(
             r"{x_{n+1}}", "=", "{x_n}", "-", r"\frac{f({x_n})}{f'({x_n})}", **tex_kw
         )
@@ -494,18 +501,21 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             t2c=tex_kw["t2c"],
         ).next_to(newtons_tex_poly, DOWN)
 
+        # specify for polynomials
         self.play(
             TransformMatchingTex(newtons_tex, newtons_tex_poly),
             Write(generic_polynomial),
         )
 
-        self.next_slide()
+        self.next_slide(
+            notes="Focusing our attention to cubics, although most of what im going to say generalizes to any polnomial",
+        )
 
         self.play(FadeOut(newtons_tex_poly), generic_polynomial.animate.center())
 
-        self.next_slide()
-
-        self.next_slide()
+        self.next_slide(
+            notes="While we normally deal with polyomials in terms of coefficients, because we are specifically interested in the roots of the polynomial it makes more sense to talk about the factored form of the polynomial"
+        )
 
         root_poly = Tex(
             r"P(x) = (x - r_1)(x - r_2)(x-r_3)",
@@ -535,7 +545,50 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             ),
         )
 
-        self.next_slide(loop=True)
+        self.next_slide(
+            notes="The factored form has a lot of advantages that makes it nicer to work with, like how it lets us cut down from 4 coefficient variables to 3 roots"
+        )
+
+        cut_down_tex = TexText(
+            r"$4$ Coefficients $\longrightarrow$ $3$", "roots"
+        ).next_to(root_poly, DOWN * 4)
+
+        cut_down_tex.add(
+            *(
+                Arrow(
+                    cut_down_tex.get_part_by_tex("roots"),
+                    root_poly.get_part_by_tex(r),
+                    fill_color=color,
+                    thickness=2,
+                    path_arc=a * PI / 3,
+                )
+                for (r, color, a) in [
+                    ("r_1", RED_A, -0.5),
+                    ("r_2", GREEN_A, 0),
+                    ("r_3", BLUE_A, 1),
+                ]
+            )
+        )
+
+        self.play(
+            LaggedStart(
+                Write(cut_down_tex),
+                ValueTracker(0).animate.set_value(1),
+                *(
+                    ShowCreationThenDestruction(
+                        SurroundingRectangle(root_poly.get_part_by_tex(f"r_{i}"))
+                    )
+                    for i in range(1, 4)
+                ),
+                lag_ratio=0.3,
+            ),
+        )
+
+        self.next_slide(
+            notes="Another nice thing is that the factored form has this sort of symettry between each root, meaning each one is swappable"
+        )
+
+        self.play(FadeOut(cut_down_tex))
 
         def swap_roots(i, j):
             self.play(
@@ -550,7 +603,9 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         swap_roots(3, 1)
         swap_roots(3, 2)
 
-        self.next_slide()
+        self.next_slide(
+            notes="Using newtons method on this polynomial means trying to actually find what these roots are for the function, and while before I talked about specifically the real value case - as you all know because of the Fundamental thereom of calculus - you can always find these roots if you allow them to take complex values"
+        )
 
         thereom_of_alg = TexText(
             r"Fundamental Thereom of Algebra $\longrightarrow r_1,r_2,r_3 \in \mathbb{C}$",
@@ -576,10 +631,10 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         )
 
         self.next_slide()
-        self.play(*(m for m in self.mobjects))
+        self.play(*(FadeOut(m) for m in self.mobjects))
 
 
-class NewtonComplex(Slide):
+class NewtonComplex(ThreeDSlide):
     f: Polynomial = SIMPLE_POLY_EXAMPLES[1]
     df: Polynomial = f.deriv()
 
@@ -629,6 +684,8 @@ class NewtonComplex(Slide):
 
         rule_group = VGroup(rule_backgrond, rule)
 
+        # Show the rule in  the conrern and show the complex plane
+
         self.play(
             ShowCreation(plane),
             ShowCreation(rule_group),
@@ -640,7 +697,17 @@ class NewtonComplex(Slide):
             fill_color=BLUE_A,
             radius=0.08,
         )
-        z0_marker.f_always.move_to(lambda: plane.n2p(z0.get_value()))
+
+        self.z0_controls_marker = False
+
+        def update_z0(m):
+            if self.z0_controls_marker:
+                z0_marker.move_to(plane.n2p(z0.get_value()))
+            else:
+                z0.set_value(plane.p2n(z0_marker.get_center()))
+            return z0_marker
+
+        z0_marker.add_updater(update_z0)
 
         z0_label = Tex("z_0", t2c={"z_0": BLUE_A}, font_size=45)
         z0_label.always.next_to(z0_marker, buff=SMALL_BUFF)
@@ -653,6 +720,7 @@ class NewtonComplex(Slide):
             return z - self.f(z) / self.df(z)
 
         def sv(z: complex, run_time=1):
+            z0.set_value(1)
             self.play(z0.animate(run_time=1).set_value(z))
 
         def make_path():
@@ -678,19 +746,32 @@ class NewtonComplex(Slide):
                     plane.n2p(values[i]),
                     plane.n2p(values[i + 1]),
                     fill_opacity=0.9,
-                    thickness=3 * (1 - float(i) / (len(values) - 1)),
+                    thickness=2 * (1 - float(i) / (len(values) - 1)),
                     path_arc=-PI / 2,
+                    fill_color=BLUE_A,
                     buff=0.0,
                 )
 
+            lines.set_submobject_colors_by_gradient(
+                BLUE_A,
+                self.point_to_root_color(values[-1]) or BLUE_A,
+            )
+            lines.set_z_index(5)
             return lines
 
-        path = always_redraw(make_path)
+        path = make_path().add_updater(lambda m: m.become(make_path()))
 
-        self.next_slide()
+        self.next_slide(
+            notes="Like before in the real number case, we start with some initial 'seed value' z0"
+        )
+
+        z0_marker_trail = TracingTail(z0_marker, stroke_color=BLUE_A)
         self.play(FadeIn(z0_marker), FadeIn(z0_label))
+        self.add(z0_marker_trail)
 
         self.next_slide()
+
+        self.path_iterations = 1
         self.play(Write(path))
 
         def make_limit_point():
@@ -698,26 +779,56 @@ class NewtonComplex(Slide):
             for _ in range(20):
                 z = z - self.f(z) / self.df(z)
 
+            color = self.point_to_root_color(z)
+
+            if color is None:
+                return VGroup()
+
             dot = GlowDot(plane.n2p(z), radius=0.5)
             dot.set_z_index(100)
+            dot.set_color(color)
 
-            d1, d2, d3 = (abs(z - r) for r in self.f.roots())
-
-            if d1 < d2 and d1 < d3:
-                dot.set_color(RED_A)
-            elif d2 < d1 and d2 < d3:
-                dot.set_color(GREEN_A)
-            elif d3 < d1 and d3 < d2:
-                dot.set_color(BLUE_B)
-            else:
-                return Group()
             return dot
 
         limit_point = always_redraw(make_limit_point)
 
         self.play(FadeIn(limit_point))
 
+        real_axes = Axes(x_range=plane.x_range)
+        real_axes.add_coordinate_labels()
+        real_axes.rotate(DEG * 90, RIGHT)
+        real_graph = real_axes.get_graph(lambda z: self.f(z), bind=True)
+
+        self.play(
+            ShowCreation(real_axes),
+            FadeIn(real_graph),
+            self.frame.animate.rotate(90 * DEG, axis=RIGHT),
+        )
+
+        self.wait(5)
+        self.next_slide()
+
+        self.play(
+            self.frame.animate.rotate(-90 * DEG, axis=RIGHT),
+            FadeOut(real_axes),
+            FadeOut(real_graph),
+        )
+
         self.embed()
+
+    def point_to_root_color(self, z: complex, epsilon=1e-1):
+        d1, d2, d3 = (abs(z - r) for r in self.f.roots())
+
+        if min(d1, d2, d3) < epsilon:
+            return None
+
+        if d1 < d2 and d1 < d3:
+            return RED_A
+        elif d2 < d1 and d2 < d3:
+            return GREEN_A
+        elif d3 < d1 and d3 < d2:
+            return BLUE_B
+        return None
 
     mouse_pressed = False
 

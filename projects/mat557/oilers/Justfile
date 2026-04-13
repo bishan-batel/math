@@ -2,7 +2,7 @@ set allow-duplicate-variables := true
 
 # set working-directory := "./../../../"
 
-slides := "FirstTitle IntroNewtonsMethod NewtonsMethodSimplification"
+slides := "FirstTitle IntroNewtonsMethod NewtonsMethodSimplification NewtonComplex"
 
 default: playground
 
