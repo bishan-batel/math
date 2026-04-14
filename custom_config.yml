@@ -4,7 +4,7 @@ mirror_module_path: True
 window:
   position_string: UR
   monitor_index: 1
-  full_screen: True
+  # full_screen: True
 camera:
   resolution: (3024, 1964)
   background_color: "#000000"

@@ -30,9 +30,6 @@ from sympy import *
 ADD_WAIT_TIME = True
 
 
-wait_did_fullscreen = False
-
-
 def add_wait(slide: Slide):
     old = slide.on_resize
 
@@ -44,10 +41,6 @@ def add_wait(slide: Slide):
         if slide.window is not None:
             slide.window.fixed_aspect_ratio = 3024.0 / 1964.0
             slide.window.set_default_viewport()
-            global wait_did_fullscreen
-            if wait_did_fullscreen is not True:
-                slide.window.fullscreen = True
-                wait_did_fullscreen = True
         old(width, height)
 
     slide.on_resize = on_resize
@@ -73,7 +66,7 @@ class FirstTitle(Slide):
             author.animate.set_opacity(1),
         )
 
-        self.next_slide()
+        self.next_slide(notes="A little goal layout")
 
         goals_title = Title("Goals").shift(DOWN * 0.5)
 
@@ -1162,8 +1155,15 @@ class NewtonComplex(ThreeDSlide):
         return None
 
 
-class AbstractNewtonFractalIntro(Slide):
+class AbstractNewtonFractal(Slide):
     roots = [ComplexValueTracker(r) for r in SIMPLE_POLY_EXAMPLES[2].roots()]
+
+    plane: ComplexPlane
+    fractal: FractalNewton
+    z0 = ComplexValueTracker(0)
+    root_dots: VGroup[Dot]
+
+    path_iterations: int = 0
 
     def f(self, z: complex):
         return Polynomial.fromroots([r.get_value() for r in self.roots])(z)
@@ -1187,38 +1187,110 @@ class AbstractNewtonFractalIntro(Slide):
         self.plane.set_opacity(0.15)
         return self.plane
 
-    def make_root_dots(self, radius=0.07) -> VGroup[Dot]:
-        self.root_dots = VGroup(
+    def make_z0(self, color=BLUE_A, radius=0.08) -> tuple[Dot, TracingTail, Tex]:
+        self.z0_marker = Dot(fill_color=color, radius=radius)
+        self.z0_marker.f_always.move_to(self.plane.n2p(self.z0.get_value()))
+        self.z0_tail = TracingTail(
+            self.z0_marker, stroke_color=self.z0_marker.fill_color
+        )
+
+        self.z0_label = Tex("z_0")
+        self.z0_label.always.next_to(self.z0_marker, RIGHT, buff=SMALL_BUFF)
+
+        return (
+            self.z0_marker,
+            self.z0_tail,
+            self.z0_label,
+        )
+
+    fix_z0_to_midpoint = False
+    show_path = True
+
+    def make_path(self):
+        return always_redraw(lambda: self.updater_make_path())
+
+    def updater_make_path(self, z0: complex | None = None):
+        if z0 is None:
+            z0 = complex(self.z0.get_value())
+
+        if not self.show_path:
+            return VMobject()
+
+        values = [z0]
+        for _ in range(self.path_iterations):
+            values.append(self.newtons(values[-1]))
+            if abs(values[-1] - values[-2]) < 0.05:
+                break
+
+        values = [self.plane.n2p(z) for z in values]
+
+        gradient = list(Color("White").range_to(Color("Red"), len(values)))
+
+        obj = VGroup()
+
+        for i in range(len(values) - 1):
+            x = values[i]
+            xn = values[i + 1]
+            obj.add(
+                Arrow(
+                    x,
+                    xn,
+                    buff=0.01,
+                    thickness=2 * (1 - float(i) / (len(values) - 1)),
+                    path_arc=PI / 4 / 4,
+                )
+            )
+
+        obj.add(
             *(
                 Dot(
-                    fill_color=color,
-                    stroke_color=BLACK,
-                    stroke_width=2,
-                    opacity=0.5,
-                    radius=radius,
-                )
-                for color in ROOT_COLORS_DEEP
+                    z,
+                    fill_color=gradient[i],
+                    stroke_color=gradient[i],
+                    radius=0.03 * (1.0 - float(i) / float(len(values))),
+                ).set_color(gradient[i])
+                for i, z in enumerate(values)
             )
         )
 
-        self.root_trails = VGroup()
+        return obj.set_submobject_colors_by_gradient(*gradient)
 
-        for dot, root in zip(self.root_dots, self.roots):
-            dot.f_always.move_to(lambda: root.get_value())
-            self.root_trails.add(TracingTail(dot, stroke_color=dot.fill_color))
+    def make_root_dots(self, radius=0.07) -> tuple[VGroup, Group[TracingTail]]:
 
-        return self.root_dots
+        def make_dot(i: int):
+            dot = Dot(
+                fill_color=ROOT_COLORS_DEEP[i],
+                stroke_color=BLACK,
+                stroke_width=2,
+                opacity=0.5,
+                radius=radius,
+            )
+            dot.f_always.move_to(
+                lambda: self.plane.n2p(complex(self.roots[i].get_value()))
+            )
+            self.root_trails.add(
+                TracingTail(
+                    dot,
+                    stroke_color=dot.fill_color,
+                )
+            )
+            return dot
+
+        self.root_trails = Group()
+        self.root_dots = VGroup(*(make_dot(i) for i in range(3)))
+        return self.root_dots, self.root_trails
 
     def construct(self):
         add_wait(self)
 
 
-class NewtonFractalIntroduction(AbstractNewtonFractalIntro):
+class NewtonFractalIntroduction(AbstractNewtonFractal):
     def construct(self):
         super().construct()
 
         plane = self.make_plane()
         fractal = self.make_fractal()
+        fractal.set_should_color_cycles(False)
         fractal.set_iteration_coloring(False)
         self.add(plane, fractal)
 
@@ -1234,7 +1306,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractalIntro):
         self.next_slide()
 
         self.play(
-            self.frame.animate(run_time=8, rate_func=slow_into)
+            self.frame.animate(run_time=8, rate_func=linear)
             .set_width(0.00478518)
             .move_to([-1.522637, -0.05915671, 0.0]),
         )
@@ -1247,6 +1319,35 @@ class NewtonFractalIntroduction(AbstractNewtonFractalIntro):
         )
 
         fractal.set_iteration_coloring(True)
+
+        self.next_slide(
+            notes="If we bring back out z0, we notice that (as we saw before), the iteration count seems to greatly increase"
+        )
+
+        self.frame.save_state()
+
+        self.play(
+            self.frame.animate(run_time=5, rate_func=linear)
+            .set_width(0.00478518)
+            .move_to([-1.522637, -0.05915671, 0.0]),
+        )
+
+        self.next_slide(notes="And is decreased when we look right near the roots")
+
+        self.play(self.frame.animate.restore())
+
+        root_dots, root_dots_trail = self.make_root_dots()
+
+        self.play(ShowCreation(root_dots))
+        self.add(root_dots_trail)
+
+        self.frame.save_state()
+
+        self.play(
+            self.frame.animate(run_time=5, rate_func=slow_into)
+            .set_width(3)
+            .move_to(self.plane.n2p(complex(self.roots[0].get_value()))),
+        )
 
         self.embed()
 
