@@ -1,31 +1,18 @@
 # pyright: reportGeneralTypeIssues=false
 
-from re import Pattern
-from subprocess import run
-import sys
-import os
-
-
 from typing import TYPE_CHECKING
 
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
 from manimlib import *
-from manimlib.utils import rate_functions
-from scipy.spatial.transform import rotation  # pyright: ignore
 
-if TYPE_CHECKING:
-    from manimlib import Vect2, Vect3
-
-
-from custom.portrait import *
-from projects.mat557.oilers.common import *
+from custom.portrait import *  # pyright:ignore
+from projects.mat557.oilers.common import *  # pyright:ignore
 from projects.mat557.oilers.fractal import (
-    ROOT_COLORS_BRIGHT,
     ROOT_COLORS_DEEP,
     FractalNewton,
 )
-from sympy import *
+from sympy import *  # pyright:ignore
 
 ADD_WAIT_TIME = True
 
@@ -1163,7 +1150,8 @@ class AbstractNewtonFractal(Slide):
     z0 = ComplexValueTracker(0)
     root_dots: VGroup[Dot]
 
-    path_iterations: int = 0
+    path_iterations: int = 10
+    show_path = True
 
     def f(self, z: complex):
         return Polynomial.fromroots([r.get_value() for r in self.roots])(z)
@@ -1189,10 +1177,15 @@ class AbstractNewtonFractal(Slide):
 
     def make_z0(self, color=BLUE_A, radius=0.08) -> tuple[Dot, TracingTail, Tex]:
         self.z0_marker = Dot(fill_color=color, radius=radius)
-        self.z0_marker.f_always.move_to(self.plane.n2p(self.z0.get_value()))
+        self.z0_marker.f_always.move_to(
+            lambda: self.plane.n2p(complex(self.z0.get_value()))
+        )
+        self.z0_marker.set_z_index(2)
+
         self.z0_tail = TracingTail(
             self.z0_marker, stroke_color=self.z0_marker.fill_color
         )
+        self.z0_tail.set_z_index(1)
 
         self.z0_label = Tex("z_0")
         self.z0_label.always.next_to(self.z0_marker, RIGHT, buff=SMALL_BUFF)
@@ -1210,10 +1203,10 @@ class AbstractNewtonFractal(Slide):
         return always_redraw(lambda: self.updater_make_path())
 
     def updater_make_path(self, z0: complex | None = None):
-        if z0 is None:
+        if z0 is not complex:
             z0 = complex(self.z0.get_value())
 
-        if not self.show_path:
+        if not self.show_path or self.path_iterations < 1:
             return VMobject()
 
         values = [z0]
@@ -1238,20 +1231,14 @@ class AbstractNewtonFractal(Slide):
                     buff=0.01,
                     thickness=2 * (1 - float(i) / (len(values) - 1)),
                     path_arc=PI / 4 / 4,
-                )
-            )
-
-        obj.add(
-            *(
+                ).set_color(gradient[i]),
                 Dot(
-                    z,
+                    x,
                     fill_color=gradient[i],
                     stroke_color=gradient[i],
                     radius=0.03 * (1.0 - float(i) / float(len(values))),
-                ).set_color(gradient[i])
-                for i, z in enumerate(values)
+                ).set_color(gradient[i]),
             )
-        )
 
         return obj.set_submobject_colors_by_gradient(*gradient)
 
@@ -1278,6 +1265,7 @@ class AbstractNewtonFractal(Slide):
 
         self.root_trails = Group()
         self.root_dots = VGroup(*(make_dot(i) for i in range(3)))
+        self.root_dots.set_z_index(5)
         return self.root_dots, self.root_trails
 
     def construct(self):
@@ -1285,6 +1273,8 @@ class AbstractNewtonFractal(Slide):
 
 
 class NewtonFractalIntroduction(AbstractNewtonFractal):
+    root_opacities = [ValueTracker(1) for _ in range(3)]
+
     def construct(self):
         super().construct()
 
@@ -1292,6 +1282,11 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         fractal = self.make_fractal()
         fractal.set_should_color_cycles(False)
         fractal.set_iteration_coloring(False)
+
+        fractal.f_always.set_color_opacities(
+            lambda: [float(r.get_value()) for r in self.root_opacities],
+        )
+
         self.add(plane, fractal)
 
         self.frame.save_state()
@@ -1321,7 +1316,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         fractal.set_iteration_coloring(True)
 
         self.next_slide(
-            notes="If we bring back out z0, we notice that (as we saw before), the iteration count seems to greatly increase"
+            notes="Zooming in on the chaotic boundry, we can see that it seems like the convergence is slower and slower the closer it is to this fractal boundry"
         )
 
         self.frame.save_state()
@@ -1344,12 +1339,253 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.frame.save_state()
 
         self.play(
-            self.frame.animate(run_time=5, rate_func=slow_into)
+            self.frame.animate(run_time=1)
             .set_width(3)
             .move_to(self.plane.n2p(complex(self.roots[0].get_value()))),
         )
 
+        self.next_slide(notes="If we bring back out our little sample point and arrows")
+
+        self.play(self.frame.animate.restore())
+
+        z0 = self.z0
+        z0_dot, z0_tail, z0_label = self.make_z0()
+        z0.set_value(2 + 1j)
+
+        self.path_iterations = 4
+        initial_path = self.updater_make_path()
+
+        self.play(
+            ShowCreation(z0_dot),
+            Write(initial_path, run_time=2),
+            Write(z0_label),
+        )
+
+        self.add(z0_tail)
+
+        self.path_iterations = 100
+        path = self.make_path()
+        self.remove(initial_path)
+        self.add(path)
+
+        self.next_slide(
+            notes="Moving it along we like before - where it starts to 'blow up' becomes a lot easier to notce"
+        )
+
+        circular_z0 = ValueTracker()
+
+        self.circular_z0_radius = 2
+
+        def circular_z0_update(m):
+            t = m.get_value()
+            circle_value = self.circular_z0_radius * np.exp(2j * PI * t)
+            self.z0.set_value(circle_value)
+            path.become(self.updater_make_path(circle_value))
+            return m
+
+        circular_z0.add_updater(circular_z0_update, call=False)
+
+        self.play(
+            self.z0.animate.set_value(2),
+        )
+
+        self.add(circular_z0)
+
+        def wiggle_cz0(wiggle=0.01, run_time=1.0, **kwargs):
+            t = float(circular_z0.get_value())
+            self.play(
+                circular_z0.animate(run_time=run_time, **kwargs).set_value(t + wiggle)
+            )
+            self.play(
+                circular_z0.animate(run_time=run_time, **kwargs).set_value(t - wiggle)
+            )
+            self.play(
+                circular_z0.animate(run_time=run_time, **kwargs).set_value(t + 0.0)
+            )
+
+        self.play(circular_z0.animate(run_time=2).set_value(0 + 1 / 6))
+        wiggle_cz0(run_time=0.5)
+
+        self.wait(1.4)
+        self.play(circular_z0.animate(run_time=1).set_value(1 / 3 + 1 / 6))
+        wiggle_cz0(run_time=0.5)
+
+        self.wait(1.4)
+        self.play(circular_z0.animate(run_time=1).set_value(2 / 3 + 1 / 6))
+        wiggle_cz0(run_time=0.5)
+
+        self.remove(circular_z0)
+
+        self.next_slide(
+            notes="This fractal isn't just a one off case for this polynomial"
+        )
+
+        tri_poly = Tex("P(z) = z^3 - 1", isolate=["z"], t2c={"z": BLUE_B}).to_corner(UL)
+
+        path.suspend_updating()
+        self.play(
+            Write(tri_poly),
+            FadeOut(path),
+            FadeOut(z0_label),
+            FadeOut(z0_dot),
+        )
+
+        self.next_slide(
+            notes="If we move around the roots of this polynomial it seems like the fractal boundries never truly go away"
+        )
+
+        self.play(FadeOut(tri_poly))
+
+        def set_roots(roots=[0, 0, 0], **kwargs):
+            self.play(
+                *(
+                    root.animate(**kwargs).set_value(nr)
+                    for root, nr in zip(self.roots, roots)
+                )
+            )
+
+        self.next_slide(
+            notes="In a sense, a way we can study and understand when newtons method acts chaotically by studying the boundry of this fractal"
+        )
+
+        r1, r2, r3 = self.roots
+
+        set_roots(roots=[1, 1j, -1])
+        self.wait(1)
+        set_roots([4 + 0.5j, -3 + 1j, 1 - 2j])
+
+        self.wait(1)
+        set_roots([-2, 0, 2])
+
+        self.wait(1)
+        set_roots(SIMPLE_POLY_EXAMPLES[0].roots())
+
+        self.wait(1)
+
+        set_roots([r2.get_value(), r3.get_value(), r1.get_value()])
+
+        self.wait(1)
+
+        chaos_relation = TexText(r"Chaos $\longrightarrow$ Fractal").to_edge(UP)
+
+        fractal.set_z_index(-2)
+        julia_fractal = fractal.copy().set_julia_highlight(1e-2).set_z_index(-1)
+
+        fractal_opacity, julia_fractal_opacity = ValueTracker(1), ValueTracker(0)
+        fractal.f_always.set_opacity(lambda: fractal_opacity.get_value())
+        julia_fractal.f_always.set_opacity(lambda: julia_fractal_opacity.get_value())
+
+        self.add(julia_fractal)
+
+        self.play(
+            Write(chaos_relation),
+            FadeOut(root_dots),
+            fractal_opacity.animate.set_value(0.2),
+            julia_fractal_opacity.animate.set_value(1.0),
+        )
+
+        self.next_slide(notes="")
+
+        self.play(
+            fractal_opacity.animate.set_value(1),
+            julia_fractal_opacity.animate.set_value(0.0),
+            # Write(path),
+            # FadeIn(root_dots),
+            # FadeIn(z0_label),
+            # FadeIn(z0_dot),
+        )
+        self.remove(julia_fractal)
+
+        # path.resume_updating()
+
         self.embed()
+
+
+class FixedPointMethod(Slide):
+    def construct(self) -> None:
+        add_wait(self)
+
+        fixed_point_formula = VGroup(
+            Tex(
+                r"z_{n+1} = f(z_n)",
+                isolate=["=", "\\lim", "n", "z", "z_{n+1}", "z_n"],
+            )
+        )
+
+        title = Title("Fixed Point Method").fix_in_frame()
+        self.add_to_canvas(title=title)
+        self.play(Write(title), title.animate.to_edge(UP))
+
+        self.next_slide()
+
+        self.play(Write(fixed_point_formula))
+
+        def cos(z):
+            return 2 * np.cos(z)
+
+        axes = Axes(
+            width=FRAME_WIDTH * 0.8,
+            height=FRAME_HEIGHT * 0.6,
+            # x_range=(-4, 4, 1),
+            # y_range=(-2, 2, 1),
+            x_range=(-4, 4, 1),
+            y_range=(-5, 5, 1),
+        ).shift(DOWN * 0.5)
+
+        axes.add_coordinate_labels()
+
+        self.next_slide()
+        cos_graph = axes.get_graph(gcos).set_color(RED)
+        self.play(
+            fixed_point_formula.animate.scale(0.8).to_corner(DL), ShowCreation(axes)
+        )
+
+        self.play(ShowCreation(cos_graph))
+
+        z0 = ValueTracker(0)
+
+        t2c = {
+            "z_{\\d}": YELLOW,
+            "z_{n}": YELLOW,
+            "z_{n+1}": YELLOW,
+        }
+
+        marker = (
+            VGroup(
+                ArrowTip(angle=PI / 2, width=0.2, length=0.2, fill_color=YELLOW),
+                Tex("z_0", t2c=t2c),
+            )
+            .arrange(DOWN)
+            .add_updater(
+                lambda m: m.move_to(axes.coords_to_point(z0.get_value())).shift(
+                    DOWN * m.get_height() * 0.5
+                )
+            )
+        )
+        always_redraw(
+            lambda: VGroup(
+                axes.get_v_line_to_graph(z0.get_value(), cos_graph),
+                axes.get_h_line_to_graph(z0.get_value(), cos_graph),
+            )
+        )
+        self.play(FadeIn(marker))
+
+        def apply_rule():
+            self.play(z0.animate.set_value(gcos(z0.get_value())))
+
+        apply_rule()
+        apply_rule()
+        apply_rule()
+        apply_rule()
+
+        self.next_slide()
+
+        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
+
+        holo_title = Title("Holomorphic Dynamics").to_edge(UP).fix_in_frame()
+
+        self.play(Transform(title, holo_title))
+        self.add_to_canvas(htitle=holo_title)
 
 
 class NewtonCubic(Slide):
@@ -1567,93 +1803,6 @@ class NewtonCubic(Slide):
             ),
             FadeOut(newtons_deriv),
         )
-
-
-class FixedPointMethod(Slide):
-    def construct(self) -> None:
-        add_wait(self)
-
-        fixed_point_formula = VGroup(
-            Tex(
-                r"z_{n+1} = f(z_n)",
-                isolate=["=", "\\lim", "n", "z", "z_{n+1}", "z_n"],
-            )
-        )
-
-        title = Title("Fixed Point Method").fix_in_frame()
-        self.add_to_canvas(title=title)
-        self.play(Write(title), title.animate.to_edge(UP))
-
-        self.next_slide()
-
-        self.play(Write(fixed_point_formula))
-
-        def gcos(z):
-            return 2 * np.cos(z)
-
-        axes = Axes(
-            width=FRAME_WIDTH * 0.8,
-            height=FRAME_HEIGHT * 0.6,
-            # x_range=(-4, 4, 1),
-            # y_range=(-2, 2, 1),
-            x_range=(-4, 4, 1),
-            y_range=(-5, 5, 1),
-        ).shift(DOWN * 0.5)
-
-        axes.add_coordinate_labels()
-
-        self.next_slide()
-        cos_graph = axes.get_graph(gcos).set_color(RED)
-        self.play(
-            fixed_point_formula.animate.scale(0.8).to_corner(DL), ShowCreation(axes)
-        )
-
-        self.play(ShowCreation(cos_graph))
-
-        z0 = ValueTracker(0)
-
-        t2c = {
-            "z_{\\d}": YELLOW,
-            "z_{n}": YELLOW,
-            "z_{n+1}": YELLOW,
-        }
-
-        marker = (
-            VGroup(
-                ArrowTip(angle=PI / 2, width=0.2, length=0.2, fill_color=YELLOW),
-                Tex("z_0", t2c=t2c),
-            )
-            .arrange(DOWN)
-            .add_updater(
-                lambda m: m.move_to(axes.coords_to_point(z0.get_value())).shift(
-                    DOWN * m.get_height() * 0.5
-                )
-            )
-        )
-        always_redraw(
-            lambda: VGroup(
-                axes.get_v_line_to_graph(z0.get_value(), cos_graph),
-                axes.get_h_line_to_graph(z0.get_value(), cos_graph),
-            )
-        )
-        self.play(FadeIn(marker))
-
-        def apply_rule():
-            self.play(z0.animate.set_value(gcos(z0.get_value())))
-
-        apply_rule()
-        apply_rule()
-        apply_rule()
-        apply_rule()
-
-        self.next_slide()
-
-        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
-
-        holo_title = Title("Holomorphic Dynamics").to_edge(UP).fix_in_frame()
-
-        self.play(Transform(title, holo_title))
-        self.add_to_canvas(htitle=holo_title)
 
 
 class MontelsThereom(Slide):

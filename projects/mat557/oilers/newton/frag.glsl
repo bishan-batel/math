@@ -31,14 +31,14 @@ uniform uint u_should_color_cycles = 1u;
 
 uniform uint u_max_iterations = 500u;
 
-uniform vec3 u_color_infinity;
-uniform vec3 u_color_cycle;
+uniform vec4 u_color_infinity;
+uniform vec4 u_color_cycle;
 
 uniform uint u_should_break_on_convergence = 0u;
 
-uniform vec3 u_color1;
-uniform vec3 u_color2;
-uniform vec3 u_color3;
+uniform vec4 u_color1;
+uniform vec4 u_color2;
+uniform vec4 u_color3;
 
 uniform vec2 u_root1;
 uniform vec2 u_root2;
@@ -295,9 +295,9 @@ float min_root_distance(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
     return sqrt(min(d1, min(d2, d3)));
 }
 
-vec3 domain_color_complex(vec2 z) {
+vec4 domain_color_complex(vec2 z) {
     // return (atan(z.y, z.x) + vec3(0.0, 2.0, 4.0)) * (length(z));
-    if (any(isinf(z)) || any(isnan(z))) return vec3(1.);
+    if (any(isinf(z)) || any(isnan(z))) return vec4(1.);
 
     float r = length(z);
     float theta = atan(z.y, z.x) / 6.28318 + 0.5; // Map [-PI, PI] to [0, 1]
@@ -318,10 +318,10 @@ vec3 domain_color_complex(vec2 z) {
     // Add grid lines for magnitude (logarithmic scale)
     // color *= 0.8 + 0.2 * sin(log(r) * 10.0);
     // color *= length()
-    return color;
+    return vec4(color, 1.);
 }
 
-vec3 limit_color_complex(
+vec4 limit_color_complex(
     vec2 z,
     float iterations,
     vec2 r1,
@@ -338,7 +338,7 @@ vec3 limit_color_complex(
     float d2 = length(r2 - z);
     float d3 = length(r3 - z);
 
-    vec3 color = vec3(0.);
+    vec4 color = vec4(0.);
 
     if (d1 <= min(d2, d3)) color = u_color1;
     else if (d2 <= min(d1, d3)) color = u_color2;
@@ -347,7 +347,7 @@ vec3 limit_color_complex(
     // if (u_do_iteration_coloring) {
     // color *= 0.5f - 10.f * log(0.9f - 1.1f * float(iterations) / float(u_max_iterations));
 
-    color = rgb_to_oklch(color);
+    color.rgb = rgb_to_oklch(color.rgb);
 
     if (u_do_iteration_coloring != 0u) {
         // color.x += pow(
@@ -364,7 +364,7 @@ vec3 limit_color_complex(
     // color.x = clamp(color.x, 0., 1.);
     // color.y = clamp(color.y, 0., 1.);
 
-    color = oklch_to_rgb(color);
+    color.rgb = oklch_to_rgb(color.rgb);
 
     return color;
 }
@@ -437,7 +437,7 @@ vec2 iterate_method(vec2 initial_z, out uint i, uint iter_mode, out float fiters
     return z;
 }
 
-vec3 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
+vec4 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
     vec2 z0 = (r1 + r2 + r3) / 3.0;
     vec2 z = z0;
 
@@ -452,14 +452,14 @@ vec3 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
     } else if (u_color_mode == COLOR_LIMITING) {
         return limit_color_complex(z, i, r1, r2, r3);
     } else {
-        return vec3(0.);
+        return vec4(0.);
     }
 }
 
 void main() {
     vec2 pixel_z = xyz_coords.xy;
 
-    vec3 color = vec3(1.);
+    vec4 color = vec4(1.);
 
     if (u_parametric == 0u) {
         uint iterations;
@@ -508,5 +508,5 @@ void main() {
         color *= 1.0 * smoothstep(0., 0.1, max_dist);
     }
 
-    frag_color = finalize_color(vec4(color, u_opacity), xyz_coords, vec3(0.0, 0.0, 1.0));
+    frag_color = finalize_color(vec4(color.rgb, color.a * u_opacity), xyz_coords, vec3(0.0, 0.0, 1.0));
 }

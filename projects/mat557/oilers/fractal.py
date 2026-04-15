@@ -20,6 +20,7 @@ def c2v(a: complex):
 
 class FractalNewton(ShaderMobject):
     scene: Scene | None = None
+    colors: list[Color] = []
 
     def __init__(
         self,
@@ -40,6 +41,7 @@ class FractalNewton(ShaderMobject):
 
         self.set_max_iterations()
         self.set_roots(roots)
+        self.set_color_opacities()
         self.set_colors(colors)
         self.set_infinity_color()
         self.set_cycle_color()
@@ -62,7 +64,7 @@ class FractalNewton(ShaderMobject):
     def set_should_break_on_convergence(self, state=True):
         self.uniforms["u_should_break_on_convergence"] = state
 
-    def set_epsilon(self, epsilon: float = 1e-3) -> Self:
+    def set_epsilon(self, epsilon: float = 1e-3):
         self.epsilon = epsilon
         self.uniforms["u_epsilon"] = epsilon
         return self
@@ -78,9 +80,9 @@ class FractalNewton(ShaderMobject):
     def get_max_iterations(self) -> int:
         return self.max_iterations
 
-    def set_infinity_color(self, color: ManimColor = WHITE):
-        self.infinity_color = color
-        self.uniforms["u_color_infinity"] = np.array(color_to_rgb(color))
+    def set_infinity_color(self, color=WHITE):
+        self.infinity_color = Color(color)
+        self.uniforms["u_color_infinity"] = np.array(color_to_rgba(color))
         return self
 
     def get_infinity_color(self):
@@ -88,19 +90,29 @@ class FractalNewton(ShaderMobject):
 
     def set_cycle_color(self, color=BLACK):
         self.infinity_color = color
-        self.uniforms["u_color_cycle"] = np.array(color_to_rgb(color))
+        self.uniforms["u_color_cycle"] = np.array(color_to_rgba(color))
         return self
 
     def get_cycle_color(self):
         return self.infinity_color
 
+    def set_color_opacities(self, opacities: list[float] = [1, 1, 1]):
+        self.color_opacities = opacities
+        self.set_colors(self.get_colors())
+        return self
+
+    def get_color_opacities(self) -> list[float]:
+        return self.color_opacities
+
     def set_colors(self, colors=ROOT_COLORS_DEEP):
         self.colors = list(colors)
         for i, c in enumerate(colors):
-            self.uniforms[f"u_color{1 + i}"] = np.array(color_to_rgb(c))
+            alpha = self.color_opacities[i] if i < len(self.color_opacities) else 1
+
+            self.uniforms[f"u_color{1 + i}"] = np.array(color_to_rgba(c, alpha=alpha))
         return self
 
-    def get_colors(self):
+    def get_colors(self) -> list[Color]:
         return self.colors
 
     def set_scale_factor(self, factor=1.0):
