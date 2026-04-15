@@ -1,15 +1,20 @@
 from custom.shader_obj import *
-from manimlib import *
+from manimlib import *  # pyright: ignore
 from numpy.polynomial import Polynomial
-from svgelements import max_depth
 
-ROOT_COLORS_BRIGHT = [RED, GREEN, BLUE, YELLOW, MAROON_B]
-ROOT_COLORS_DEEP = [
-    "#440154",
-    "#3b528b",
-    "#21908c",
-    "#5dc963",
-    "#29abca",
+ROOT_COLORS_BRIGHT: list[Color] = [
+    Color(c) for c in [RED, GREEN, BLUE, YELLOW, MAROON_B]
+]
+
+ROOT_COLORS_DEEP: list[Color] = [
+    Color(c)
+    for c in [
+        "#440154",
+        "#3b528b",
+        "#21908c",
+        "#5dc963",
+        "#29abca",
+    ]
 ]
 CUBIC_COLORS = [RED_E, TEAL_E, BLUE_E]
 
@@ -131,7 +136,7 @@ class FractalNewton(ShaderMobject):
     def get_should_color_cycles(self):
         return self.should_color_cycles
 
-    def set_julia_highlight(self, highlight=0):
+    def set_julia_highlight(self, highlight=0.0):
         self.julia_highlight = highlight
         self.uniforms["u_julia_highlight"] = highlight
         return self

@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
-from manimlib import *
+from manimlib import *  # pyright:ignore
+from manimlib.typing import *  # pyright:ignore
 
 from custom.portrait import *  # pyright:ignore
 from projects.mat557.oilers.common import *  # pyright:ignore
@@ -12,7 +13,6 @@ from projects.mat557.oilers.fractal import (
     ROOT_COLORS_DEEP,
     FractalNewton,
 )
-from sympy import *  # pyright:ignore
 
 ADD_WAIT_TIME = True
 
@@ -55,7 +55,7 @@ class FirstTitle(Slide):
 
         self.next_slide(notes="A little goal layout")
 
-        goals_title = Title("Goals").shift(DOWN * 0.5)
+        goals_title = Title("Goals").shift((DOWN) * 0.5)
 
         self.play(FadeOut(text), FadeOut(author), Write(goals_title))
 
@@ -297,7 +297,10 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         x0_label = VGroup(
             Tex("x_0", "=", t2c={"x_0": YELLOW}).to_corner(UL),
-            DecimalNumber(float(x0.get_value()), num_decimal_places=4),
+            DecimalNumber(
+                float(x0.get_value()),  # pyright:ignore
+                num_decimal_places=4,
+            ),
         )
 
         def perform_one_step(speed=0.8):
@@ -320,7 +323,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             x0_label[1]
             .f_always.set_value(lambda: x0.get_value())
             .next_to(lambda: x0_label[0])
-            .shift(lambda: UP * 0.05)
+            .shift(lambda: UP * 0.05)  # pyright:ignore
         )
 
         self.play(FadeIn(x0_marker), Write(x0_label))
@@ -342,7 +345,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         ex_root = Tex(
             f"f(x_{self.n})",
             r"\, \approx \,",
-            f"{self.f(x0.get_value()):.8f}\\dots",
+            f"{self.f(x0.get_value()):.8f}\\dots",  # pyright:ignore
             isolate=[f"x_{self.n}"],
             t2c={f"x_{self.n}": YELLOW},
         ).center()
@@ -909,7 +912,7 @@ class NewtonComplex(ThreeDSlide):
                 self.play(
                     z0.animate(
                         run_time=(rotation_time / float(rotations)), rate_func=linear
-                    ).set_value(rotation_radius * exp(1j * angle))
+                    ).set_value(rotation_radius * np.exp(1j * angle))
                 )
 
         rotate_z0()
@@ -1119,6 +1122,8 @@ class NewtonComplex(ThreeDSlide):
         self.embed()
 
     def make_points(self, density=20) -> Iterable[complex]:
+        from sympy import flatten
+
         RE, IM = np.mgrid[-6 : 6 : density * 1j, -4 : 4 : density * 1j]
         return flatten(RE + IM * 1j)
 
@@ -1484,19 +1489,24 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             julia_fractal_opacity.animate.set_value(1.0),
         )
 
-        self.next_slide(notes="")
+        self.next_slide(
+            notes="To get the fractal we could use a vibes based 'just move the roots and see the picture', maybe try seeing how the fractal behaves as we apply symettries over the roots",
+        )
 
         self.play(
             fractal_opacity.animate.set_value(1),
             julia_fractal_opacity.animate.set_value(0.0),
-            # Write(path),
-            # FadeIn(root_dots),
-            # FadeIn(z0_label),
-            # FadeIn(z0_dot),
+            FadeIn(root_dots),
         )
+
         self.remove(julia_fractal)
 
-        # path.resume_updating()
+        def apply_to_roots(func: Callable[[complex], complex]):
+            set_roots(
+                [func(complex(r.get_value())) for r in self.roots],
+            )
+
+        apply_to_roots(lambda z: z * np.exp(2j * PI / 3))
 
         self.embed()
 
@@ -1520,8 +1530,8 @@ class FixedPointMethod(Slide):
 
         self.play(Write(fixed_point_formula))
 
-        def cos(z):
-            return 2 * np.cos(z)
+        def gcos(z):
+            return 1 * np.cos(z)
 
         axes = Axes(
             width=FRAME_WIDTH * 0.8,
@@ -1590,6 +1600,8 @@ class FixedPointMethod(Slide):
 
 class NewtonCubic(Slide):
     def construct(self) -> None:
+        from sympy import symbols, roots, numer, Symbol, Derivative, simplify, expand
+
         add_wait(self)
 
         to_isolate = [
@@ -1654,6 +1666,8 @@ class NewtonCubic(Slide):
             isolate=to_isolate,
             t2c=colors,
         )
+
+        from sympy import oo, latex, factor
 
         sym_df = simplify(
             Derivative(Symbol("d") * cubic(z), z, evaluate=True), ratio=oo
