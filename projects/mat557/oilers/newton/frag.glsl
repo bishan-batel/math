@@ -15,6 +15,8 @@ const uint METHOD_SECANT = 5u;
 const uint COLOR_DOMAIN = 0u;
 const uint COLOR_LIMITING = 1u;
 
+const uint MAX_ROOTS = 3u;
+
 const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
 uniform float u_epsilon = 1E-5f;
 
@@ -54,6 +56,8 @@ uniform uint u_do_iteration_coloring = 1u;
 uniform uint u_parametric = 0u;
 
 uniform float u_opacity = 1.0;
+
+uniform float u_relaxed_newtons = 1.0f;
 
 in vec3 xyz_coords;
 
@@ -224,7 +228,11 @@ vec2 d2f(vec2 z) {
 // ======================
 
 vec2 newton(vec2 z) {
-    return z - cdiv(f(z), df(z));
+    return z - cdiv(f(z), df(z)) * u_relaxed_newtons;
+}
+
+vec2 newton(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
+    return z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3)) * u_relaxed_newtons;
 }
 
 vec2 deriv_newton(vec2 z) {
@@ -443,7 +451,8 @@ vec4 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
 
     uint i = 0u;
     for (; i < u_max_iterations; i++) {
-        z = z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3));
+        // z = z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3));
+        z = newton(z, r1, r2, r3);
         if (min_root_distance(z, r1, r2, r3) < u_epsilon) break;
     }
 

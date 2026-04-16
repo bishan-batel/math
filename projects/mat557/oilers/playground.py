@@ -36,6 +36,8 @@ class Playground(Slide):
         # DEFAULT_COEFFICIENTS = np.array([-5, 4, 0, 1])
         # COEFFICIENTS = np.array([2, -2, 0, 1])
 
+        relaxed = ValueTracker(1)
+
         self.roots = [
             ComplexValueTracker().set_value(root) for root in FIXED_POINT_EXAMPLES[0]
         ]
@@ -53,12 +55,15 @@ class Playground(Slide):
         fractal.f_always.set_scale_factor(lambda: scale_factor.get_value())
         fractal.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
         fractal.f_always.set_mode(lambda: method_to_mode(self.method))
+        fractal.f_always.set_relaxed_newtons(lambda: relaxed.get_value())
         self.add(fractal)
 
-        def current_method(z: complex, zp: complex, zpp: complex):
+        def current_method(z: complex, zp: complex, zpp: complex, relaxed=1):
             f = fractal.polynomial()
             df = f.deriv()
-            return self.method(z, zp=zp, zpp=zpp, f=f, df=df, d2f=df.deriv())
+            return self.method(
+                z, zp=zp, zpp=zpp, f=f, df=df, d2f=df.deriv(), relaxed=relaxed
+            )
 
         # fractal = gen_fractal_image(self.plane, roots=roots_num(), method=current_method)
 
@@ -117,7 +122,14 @@ class Playground(Slide):
                 elif is_secant(self.method):
                     zp = values[-2]
 
-                values.append(current_method(z=values[-1], zp=zp, zpp=zpp))
+                values.append(
+                    current_method(
+                        z=values[-1],
+                        zp=zp,
+                        zpp=zpp,
+                        relaxed=fractal.get_relaxed_newtons(),
+                    )
+                )
                 if abs(values[-1] - values[-2]) < 0.05:
                     break
 

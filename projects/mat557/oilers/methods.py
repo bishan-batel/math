@@ -2,8 +2,8 @@ from numpy.polynomial import Polynomial
 import numpy as np
 
 
-def newtons(z: complex, f: Polynomial, df: Polynomial, **kargs):
-    return z - f(z) / df(z)
+def newtons(z: complex, f: Polynomial, df: Polynomial, relaxed=1.0, **kargs):
+    return z - relaxed * (f(z) / df(z))
 
 
 def secant(z: complex, f: Polynomial, zp: complex, **kwargs):

@@ -1501,12 +1501,17 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         self.remove(julia_fractal)
 
-        def apply_to_roots(func: Callable[[complex], complex]):
-            set_roots(
-                [func(complex(r.get_value())) for r in self.roots],
-            )
+        def apply_to_roots(func: Callable[[complex], complex], **kwargs):
+            set_roots([func(complex(r.get_value())) for r in self.roots], **kwargs)
 
         apply_to_roots(lambda z: z * np.exp(2j * PI / 3))
+
+        self.wait(1)
+
+        apply_to_roots(lambda z: z + 1j, run_time=0.5)
+        apply_to_roots(lambda z: z + 1, run_time=0.5)
+        apply_to_roots(lambda z: z - 1j, run_time=0.5)
+        apply_to_roots(lambda z: z - 1, run_time=0.5)
 
         self.embed()
 

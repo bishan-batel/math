@@ -26,6 +26,11 @@ def c2v(a: complex):
 class FractalNewton(ShaderMobject):
     scene: Scene | None = None
     colors: list[Color] = []
+    relaxed_newtons: float = 1.0
+    is_parametric: bool
+    z0: complex
+    roots: list[complex]
+    iteraiton_coloring: bool
 
     def __init__(
         self,
@@ -56,6 +61,7 @@ class FractalNewton(ShaderMobject):
         self.set_iteration_coloring()
         self.set_epsilon()
         self.set_julia_highlight()
+        self.set_relaxed_newtons()
 
     def pin(self, scene: Scene):
         self.scene = scene
@@ -182,6 +188,14 @@ class FractalNewton(ShaderMobject):
 
     def get_seed_space(self):
         return not self.is_parametric
+
+    def set_relaxed_newtons(self, relaxed=1.0):
+        self.relaxed_newtons = relaxed
+        self.uniforms["u_relaxed_newtons"] = relaxed
+        return self
+
+    def get_relaxed_newtons(self):
+        return self.relaxed_newtons
 
     def set_roots(self, roots: Iterable[complex]):
         self.roots = list(roots)
