@@ -41,6 +41,7 @@
               nativeBuildInputs = with pkgs; [ 
                 pkg-config 
                 python3Packages.setuptools
+                python3Packages.pyopengl
                 pango
                 texliveFull
                 ffmpeg 
@@ -62,10 +63,11 @@
                   libGL
                   libGLU
                   alsa-lib
+                  mesa
                   libxkbcommon 
                   wayland-protocols
                   wayland
-                  xorg.libxcb
+                  libxcb
                 ]);
 
               env = if pkgs.stdenv.isDarwin then {
@@ -87,6 +89,8 @@
 
               echo "Nix-Darwin OpenGL Bridge Active."
               '' else /*bash*/ ''
+                  export LIBGL_DIAGNOSTIC=1 
+                  # export PYOPENGL_PLATFORM="osmesa"
                   export QT_PLUGIN_PATH="${pkgs.qt6.qtbase}/${pkgs.qt6.qtbase.qtPluginPrefix}:${pkgs.qt6.qtmultimedia}/${pkgs.qt6.qtbase.qtPluginPrefix}"
                   export GST_PLUGIN_SYSTEM_PATH_1_0="${pkgs.gst_all_1.gstreamer.out}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-base}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-good}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-plugins-bad}/lib/gstreamer-1.0:${pkgs.gst_all_1.gst-libav}/lib/gstreamer-1.0"
               '';

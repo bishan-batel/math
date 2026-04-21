@@ -1,9 +1,6 @@
 #version 330
 
 precision highp float;
-precision highp vec2;
-precision highp vec3;
-precision highp vec4;
 
 const uint METHOD_NEWTON = 0u;
 const uint METHOD_HALLEY = 1u;

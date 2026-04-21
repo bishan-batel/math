@@ -2,11 +2,13 @@
 
 from typing import TYPE_CHECKING
 
+
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
 from manimlib import *  # pyright:ignore
 from manimlib.typing import *  # pyright:ignore
 
+from custom.typings import *  # pyright:ignore
 from custom.portrait import *  # pyright:ignore
 from projects.mat557.oilers.common import *  # pyright:ignore
 from projects.mat557.oilers.fractal import (
@@ -55,7 +57,7 @@ class FirstTitle(Slide):
 
         self.next_slide(notes="A little goal layout")
 
-        goals_title = Title("Goals").shift((DOWN) * 0.5)
+        goals_title = Title("Goals").shift(np.array(*DOWN) * 0.5)
 
         self.play(FadeOut(text), FadeOut(author), Write(goals_title))
 
@@ -132,6 +134,8 @@ class FirstTitle(Slide):
 
         self.next_slide()
         self.wipe(self.mobjects_without_canvas)
+
+        self.embed()
 
 
 class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
@@ -1374,7 +1378,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.add(path)
 
         self.next_slide(
-            notes="Moving it along we like before - where it starts to 'blow up' becomes a lot easier to notce"
+            notes="Moving it along we like before - where it starts to 'blow up' becomes a lot easier to notice"
         )
 
         circular_z0 = ValueTracker()

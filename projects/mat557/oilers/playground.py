@@ -49,7 +49,9 @@ class Playground(Slide):
 
         # Create a shader mobject (a self.plane with shader code)
         scale_factor = ValueTracker(1)
-        fractal = FractalNewton(roots=[r.get_value() for r in self.roots])
+        fractal = self.fractal = FractalNewton(
+            roots=[r.get_value() for r in self.roots]
+        )
         fractal.set_z_index(-20)
         fractal.pin(self)
         fractal.f_always.set_scale_factor(lambda: scale_factor.get_value())
@@ -187,32 +189,26 @@ class Playground(Slide):
 
         self.embed()
 
-        self.next_slide(loop=True)
-
-        for v, run_time in [
-            (0 + 1j, 2),
-            (-0.5 + 2j, 2),
-            (1 - 2.02j, 3),
-            (-0.5 - 0.8j, 2),
-            (0.0 - 0.0, 3),
-            (0.2 - 0.0, 3),
-            (-1.0 - 0.0, 3),
-        ]:
-            self.play(z0.animate(run_time=run_time).set_value(v))  # pyright: ignore
-            self.wait(0.5)
-
-        self.play(z0.animate(run_time=1).set_value(1j))  # pyright: ignore
-
-        self.next_slide()
-
-        self.next_slide(loop=True, auto_next=True)
-
     def on_resize(self, width: int, height: int) -> None:
+        super().on_resize(width, height)
         if self.window is not None:
             self.window.fixed_aspect_ratio = float(FRAME_WIDTH) / float(FRAME_HEIGHT)
             self.window.set_default_viewport()
 
+    drag_to_pan = False
+
+    def on_key_press(self, symbol: int, modifiers: int) -> None:
+        super().on_key_press(symbol, modifiers)
+
+        if symbol == 97 and self.fractal is not None:
+            self.fractal.set_parameter_space(not self.fractal.get_parameter_space())
+
     def on_mouse_drag(self, point, d_point, buttons: int, modifiers: int):
+        super().on_mouse_drag(point, d_point, buttons, modifiers)
+
+        # point = self.mouse_point.get_center()
+        # print(self.mouse_drag_point.get_center())
+
         p = point[0] + 1j * point[1]
 
         min_tracker = None

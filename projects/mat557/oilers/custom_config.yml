@@ -3,11 +3,11 @@
 mirror_module_path: True
 window:
   # position_string: OO
-  monitor_index: 1
+  monitor_index: 0
   position_string: UR
   # size: (1800, 1125)
   # position: (0,-1169)
-  full_screen: True
+  full_screen: False
 
 camera:
   resolution: (3024, 1964)
