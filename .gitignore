@@ -7,3 +7,4 @@
 *.mp4
 .venv/
 *.egginfo/
+.DS_Store
