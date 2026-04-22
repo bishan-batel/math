@@ -260,8 +260,8 @@ struct Polynomial {
     uint degree;
 };
 
-// void roots_to_coefs(in vec2 roots[MAX_ROOTS], in uint degree, out vec2 coefs[MAX_COEFS]) {
-void roots_to_coefs(inout Polynomial polynomial) {
+// void Polynomial_gen_coefs_from_roots(in vec2 roots[MAX_ROOTS], in uint degree, out vec2 coefs[MAX_COEFS]) {
+void Polynomial_gen_coefs_from_roots(inout Polynomial polynomial) {
     for (uint i = 0u; i < MAX_COEFS; i++) polynomial.coefs[i] = vec2(0.0);
     polynomial.coefs[0] = vec2(1.0, 0.0); // Start with P(z) = 1
 
@@ -303,7 +303,7 @@ void populate_uniform_roots(out vec2 roots[MAX_ROOTS], out uint degree) {
 // populates a given root array, num of roots, and coefs with the roots & coefficients of the polynomial described via the uniforms u_root[1:10], with this polynomial being of degree u_degree
 void populate_uniform_poylnomial(inout Polynomial polynomial) {
     populate_uniform_roots(polynomial.roots, polynomial.degree);
-    roots_to_coefs(polynomial);
+    Polynomial_gen_coefs_from_roots(polynomial);
 }
 
 /// Evaluate given polynomial at z
@@ -329,42 +329,13 @@ vec2 Polynomial_eval_deriv1(in Polynomial polynomial, in vec2 z) {
 }
 
 /// Evaluate second derivative P''(z)
-vec2 Poly_eval_deriv2(in Polynomial polynomial, in vec2 z) {
+vec2 Polynomial_eval_deriv2(in Polynomial polynomial, in vec2 z) {
     vec2 result = vec2(0.0);
     for (int i = int(polynomial.degree); i >= 2; i--) {
         vec2 term = polynomial.coefs[i] * float(i * (i - 1));
         result = cmul(result, z) + term;
     }
     return result;
-}
-
-vec2 cubic_P(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
-    return cmul(cmul(z - r1, z - r2), z - r3);
-}
-
-vec2 cubic_dP(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
-    vec2 t1 = cmul(csub(z, r2), csub(z, r3));
-    vec2 t2 = cmul(csub(z, r1), csub(z, r3));
-    vec2 t3 = cmul(csub(z, r1), csub(z, r2));
-
-    return t1 + t2 + t3;
-}
-
-vec2 cubic_d2P(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
-    return -2. * r1 - 2. * r2 - 2. * r3 + 6. * z;
-}
-
-vec2 f(vec2 z) {
-    return cubic_P(z, u_root1, u_root2, u_root3);
-}
-
-// Derivative f'(z) = 3z^2
-vec2 df(vec2 z) {
-    return cubic_dP(z, u_root1, u_root2, u_root3);
-}
-
-vec2 d2f(vec2 z) {
-    return cubic_d2P(z, u_root1, u_root2, u_root3);
 }
 
 // ======================
@@ -378,43 +349,43 @@ vec2 newton(
     return z - u_relaxed_newtons * cdiv(Polynomial_eval(polynomial, z), Polynomial_eval_deriv1(polynomial, z));
 }
 
-vec2 newton(in vec2 z, in vec2 r1, in vec2 r2, in vec2 r3) {
-    return z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3)) * u_relaxed_newtons;
-}
+vec2 halley(in Polynomial polynomial, vec2 z) {
+    vec2 fz = Polynomial_eval(polynomial, z);
+    vec2 dfz = Polynomial_eval_deriv1(polynomial, z);
+    vec2 d2fz = Polynomial_eval_deriv2(polynomial, z);
 
-vec2 deriv_newton(in vec2 z) {
-    return cdiv(
-        cmul(d2f(z), f(z)),
-        cmul(df(z), df(z))
-    );
-}
-
-vec2 halley(vec2 z) {
     return z - cdiv(
-            cmul(f(z), df(z)),
-            cmul(df(z), df(z)) - 0.5f * cmul(f(z), d2f(z))
+            cmul(fz, dfz),
+            cmul(dfz, dfz) - 0.5f * cmul(fz, d2fz)
         );
 }
 
-vec2 secant(vec2 z, inout vec2 zp) {
-    vec2 d = cdiv(f(z) - f(zp), z - zp);
+vec2 secant(in Polynomial polynomial, vec2 z, inout vec2 zp) {
+    vec2 fz = Polynomial_eval(polynomial, z);
+    vec2 fzp = Polynomial_eval(polynomial, zp);
 
-    vec2 next_z = z - cdiv(f(z), d);
+    vec2 d = cdiv(fz - fzp, z - zp);
+
+    vec2 next_z = z - cdiv(fz, d);
 
     zp = z;
 
     return next_z;
 }
 
-vec2 young_oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
-    vec2 d = cdiv(f(z) - f(zp), z - zp);
-    vec2 d_p = cdiv(f(zp) - f(zpp), zp - zpp);
+vec2 young_oiler(in Polynomial polynomial, vec2 z, inout vec2 zp, inout vec2 zpp) {
+    vec2 fz = Polynomial_eval(polynomial, z);
+    vec2 fzp = Polynomial_eval(polynomial, zp);
+    vec2 fzpp = Polynomial_eval(polynomial, zpp);
+
+    vec2 d = cdiv(fz - fzp, z - zp);
+    vec2 d_p = cdiv(fzp - fzpp, zp - zpp);
     vec2 d2 = cdiv(d - d_p, z - zpp);
 
     vec2 next_z =
         z - cdiv(
-                cmul(f(z), d),
-                cmul(d, d) - cmul(f(zp), d2)
+                cmul(fz, d),
+                cmul(d, d) - cmul(fzp, d2)
             );
 
     zpp = zp;
@@ -423,14 +394,18 @@ vec2 young_oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
     return next_z;
 }
 
-vec2 oiler(vec2 z, inout vec2 zp, inout vec2 zpp) {
-    vec2 d = cdiv(f(z) - f(zp), z - zp);
-    vec2 d_p = cdiv(f(zp) - f(zpp), zp - zpp);
+vec2 oiler(in Polynomial polynomial, in vec2 z, inout vec2 zp, inout vec2 zpp) {
+    vec2 fz = Polynomial_eval(polynomial, z);
+    vec2 fzp = Polynomial_eval(polynomial, zp);
+    vec2 fzpp = Polynomial_eval(polynomial, zpp);
+
+    vec2 d = cdiv(fz - fzp, z - zp);
+    vec2 d_p = cdiv(fzp - fzpp, zp - zpp);
     vec2 d2 = cdiv(d - d_p, z - zpp);
 
     vec2 next_z = z - cdiv(
-                cmul(f(z), d),
-                cmul(d, d) - cmul(f(z), d2)
+                cmul(fz, d),
+                cmul(d, d) - cmul(fz, d2)
             );
 
     zpp = zp;
@@ -544,11 +519,15 @@ vec4 limit_color_complex(
     return color;
 }
 
-void iteration_setup(vec2 initial_z, inout vec2 z, inout vec2 zp, inout vec2 zpp, uint iter_mode) {
+void iteration_setup(in Polynomial polynomial, vec2 initial_z, inout vec2 z, inout vec2 zp, inout vec2 zpp, uint iter_mode) {
     if (iter_mode == METHOD_OILER || iter_mode == METHOD_YOUNG_OILER) {
         zpp = initial_z;
         zp = zpp + u_oiler_offset;
-        z = zp - cdiv(f(zp), cdiv(f(zp) - f(zpp), zp - zpp));
+
+        // secant method
+        vec2 fzp = Polynomial_eval(polynomial, zp);
+        vec2 fzpp = Polynomial_eval(polynomial, zpp);
+        z = zp - cdiv(fzp, cdiv(fzp - fzpp, zp - zpp));
     } else if (iter_mode == METHOD_SECANT) {
         zp = initial_z;
         z = zp + u_secant_offset;
@@ -563,24 +542,24 @@ void single_iteration(in Polynomial polynomial, inout vec2 z, inout vec2 zp, ino
         z = newton(polynomial, z);
     }
     else if (iter_mode == METHOD_HALLEY) {
-        z = halley(z);
+        z = halley(polynomial, z);
     }
     else if (iter_mode == METHOD_YOUNG_OILER) {
-        z = young_oiler(z, zp, zpp);
+        z = young_oiler(polynomial, z, zp, zpp);
     }
     else if (iter_mode == METHOD_OILER) {
-        z = oiler(z, zp, zpp);
+        z = oiler(polynomial, z, zp, zpp);
     } else if (iter_mode == METHOD_LATTE) {
         z = latte(z);
     } else if (iter_mode == METHOD_SECANT) {
-        z = secant(z, zp);
+        z = secant(polynomial, z, zp);
     }
 }
 
 vec2 iterate_method(in Polynomial polynomial, vec2 initial_z, out uint i, uint iter_mode, out float float_iters) {
     vec2 zpp, zp, z;
 
-    iteration_setup(initial_z, z, zp, zpp, iter_mode);
+    iteration_setup(polynomial, initial_z, z, zp, zpp, iter_mode);
 
     float curr_len;
 
@@ -611,30 +590,33 @@ vec2 iterate_method(in Polynomial polynomial, vec2 initial_z, out uint i, uint i
     return z;
 }
 
-vec4 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
-    vec2 z0 = (r1 + r2 + r3) / 3.0;
-    vec2 z = z0;
-
-    uint i = 0u;
+void fragment_parameter_space(out vec4 color, in vec2 pixel_z) {
+    uint iterations;
+    float f_iters;
 
     Polynomial polynomial;
-    polynomial.degree = 3u;
-    polynomial.roots[0] = r1;
-    polynomial.roots[1] = r2;
-    polynomial.roots[2] = r3;
+    populate_uniform_roots(polynomial.roots, polynomial.degree);
 
-    for (; i < u_max_iterations; i++) {
-        // z = z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3));
-        z = newton(polynomial, z);
-        if (close_enough_to_root(polynomial, z)) break;
+    // overwrite first root
+    polynomial.roots[0] = pixel_z;
+
+    Polynomial_gen_coefs_from_roots(polynomial);
+
+    // get center of all roots
+    vec2 z0 = vec2(0.f);
+    for (uint i = 0u; i < polynomial.degree; i++) {
+        z0 += polynomial.roots[i];
     }
+    z0 /= float(polynomial.degree);
+
+    vec2 z = iterate_method(polynomial, z0, iterations, u_mode, f_iters);
 
     if (u_color_mode == COLOR_DOMAIN) {
-        return domain_color_complex(z);
+        color = domain_color_complex(z);
     } else if (u_color_mode == COLOR_LIMITING) {
-        return limit_color_complex(z, i, polynomial);
+        color = limit_color_complex(z, f_iters, polynomial);
     } else {
-        return vec4(0.);
+        color = vec4(1., 0., 0.1, 1.);
     }
 }
 
@@ -666,7 +648,7 @@ void fragment_seedspace(out vec4 color, in vec2 pixel_z) {
             ), zp, zpp;
 
         for (uint i = 0u; i < NUM_SAMPLES; i++) {
-            iteration_setup(z[i], z[i], zp[i], zpp[i], u_mode);
+            iteration_setup(polynomial, z[i], z[i], zp[i], zpp[i], u_mode);
         }
 
         float max_dist = 0.0;
@@ -691,8 +673,7 @@ vec4 fragment(in vec2 pixel_z) {
     if (u_parametric == 0u) {
         fragment_seedspace(color, pixel_z);
     } else if (u_parametric == 1u) {
-        uint iterations;
-        color = Parametric_newton(pixel_z, u_root2, u_root3);
+        fragment_parameter_space(color, pixel_z);
     }
 
     return color;

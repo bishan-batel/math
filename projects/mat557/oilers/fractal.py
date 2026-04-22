@@ -12,7 +12,14 @@ ROOT_COLORS_DEEP: list[Color] = [
         "#440154",
         "#3b528b",
         "#21908c",
+        "#31688e",
+        "#26828e",
+        "#20a386",
         "#5dc963",
+        "#7ad151",
+        "#a6d854",
+        "#c2df59",
+        "#fde725",
         "#29abca",
     ]
 ]
@@ -24,13 +31,16 @@ def c2v(a: complex):
 
 
 class FractalNewton(ShaderMobject):
+    MAX_DEGREE = 10
+
     scene: Scene | None = None
     colors: list[Color] = []
     relaxed_newtons: float = 1.0
     is_parametric: bool
     z0: complex
     roots: list[complex]
-    iteraiton_coloring: bool
+    iteration_coloring: bool
+    degree = 3
 
     def __init__(
         self,
@@ -197,12 +207,13 @@ class FractalNewton(ShaderMobject):
     def get_relaxed_newtons(self):
         return self.relaxed_newtons
 
-    def set_roots(self, roots: Iterable[complex]):
+    def set_roots(self, roots: Iterable[complex], degree: None | int = None):
         self.roots = list(roots)
+        self.degree = len(self.roots) if degree is None else degree
+        self.uniforms["u_degree"] = self.degree
 
         for i, r in enumerate(self.roots):
             self.uniforms[f"u_root{i + 1}"] = c2v(r)
-            self.uniforms["u_degree"] = i + 1
 
         return self
 
@@ -225,4 +236,8 @@ class FractalNewton(ShaderMobject):
         return self.opacity
 
     def polynomial(self):
-        return Polynomial.fromroots(self.roots)
+        roots = []
+        for i in range(self.degree):
+            roots.append(self.roots[i])
+
+        return Polynomial.fromroots(roots)

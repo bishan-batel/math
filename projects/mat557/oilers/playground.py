@@ -2,6 +2,7 @@ import sys
 import os
 
 from sympy import limit
+from sympy.polys.polyoptions import Frac
 
 from custom.shader_obj import *
 
@@ -20,6 +21,9 @@ SECANT_OFFSET = 0.01
 
 
 class Playground(Slide):
+    drag_to_pan = False
+    degree = 3
+    roots: list[ComplexValueTracker]
     trackers: list[ComplexValueTracker] = []
 
     def construct(self):
@@ -39,8 +43,14 @@ class Playground(Slide):
         relaxed = ValueTracker(1)
 
         self.roots = [
-            ComplexValueTracker().set_value(root) for root in FIXED_POINT_EXAMPLES[0]
+            ComplexValueTracker(
+                np.exp(1j * float(i) / FractalNewton.MAX_DEGREE * 2 * PI)
+            )
+            for i in range(0, FractalNewton.MAX_DEGREE)
         ]
+
+        for root, value in zip(self.roots, FIXED_POINT_EXAMPLES[0]):
+            root.set_value(value)
 
         def set_coefs(c0, c1, c2, c3):
             new_roots = Polynomial((c0, c1, c2, c3)).roots()
@@ -55,7 +65,9 @@ class Playground(Slide):
         fractal.set_z_index(-20)
         fractal.pin(self)
         fractal.f_always.set_scale_factor(lambda: scale_factor.get_value())
-        fractal.f_always.set_roots(lambda: [root.get_value() for root in self.roots])
+        fractal.f_always.set_roots(
+            lambda: [root.get_value() for root in self.roots], lambda: self.degree
+        )
         fractal.f_always.set_mode(lambda: method_to_mode(self.method))
         fractal.f_always.set_relaxed_newtons(lambda: relaxed.get_value())
         self.add(fractal)
@@ -69,8 +81,10 @@ class Playground(Slide):
 
         # fractal = gen_fractal_image(self.plane, roots=roots_num(), method=current_method)
 
-        def root_updater(tracker):
-            return lambda m: m.move_to(self.plane.n2p(tracker.get_value()))
+        def root_updater(tracker, i: int):
+            return lambda m: m.move_to(self.plane.n2p(tracker.get_value())).set_opacity(
+                1.0 if i < self.degree else 0.0
+            )
 
         root_dots = [
             # Tex(f"r_{i + 1}").set_z_index(5).add_updater(root_updater(root))
@@ -82,7 +96,7 @@ class Playground(Slide):
                 radius=0.05,
             )
             .set_z_index(5)
-            .add_updater(root_updater(root))
+            .add_updater(root_updater(root, i))
             for (i, root) in enumerate(self.roots)
         ]
 
@@ -96,7 +110,9 @@ class Playground(Slide):
 
         def make_path(z: complex):
             if self.fix_z0_to_midpoint:
-                self.z0.set_value(sum(r.get_value() for r in self.roots) / 3.0)
+                self.z0.set_value(
+                    sum(r.get_value() for r in self.curr_roots()) / float(self.degree)
+                )
             if not self.show_path:
                 return VMobject()
 
@@ -187,15 +203,28 @@ class Playground(Slide):
         z0_path = always_redraw(lambda: make_path(z0.get_value()))
         self.add(z0_marker, z0_path)
 
+        def randomize_roots(scale=2.5, speed=0.5):
+            self.play(
+                *(
+                    root.animate(run_time=speed).set_value(
+                        np.exp(random.random() * 2 * PI * 1j)
+                        * np.log(1e-3 + random.random())
+                        * scale
+                    )
+                    for root in self.roots
+                )
+            )
+
         self.embed()
+
+    def curr_roots(self) -> list[ComplexValueTracker]:
+        return self.roots[0 : self.degree]
 
     def on_resize(self, width: int, height: int) -> None:
         super().on_resize(width, height)
-        if self.window is not None:
-            self.window.fixed_aspect_ratio = float(FRAME_WIDTH) / float(FRAME_HEIGHT)
-            self.window.set_default_viewport()
-
-    drag_to_pan = False
+        # if self.window is not None:
+        #     self.window.fixed_aspect_ratio = float(FRAME_WIDTH) / float(FRAME_HEIGHT)
+        #     self.window.set_default_viewport()
 
     def on_key_press(self, symbol: int, modifiers: int) -> None:
         super().on_key_press(symbol, modifiers)
@@ -213,7 +242,7 @@ class Playground(Slide):
 
         min_tracker = None
         min_dist = 1000
-        for tracker in [self.z0, *self.roots]:
+        for tracker in [self.z0, *self.curr_roots()]:
             dist = abs(tracker.get_value() - p)
             if dist < min_dist:
                 min_tracker = tracker
