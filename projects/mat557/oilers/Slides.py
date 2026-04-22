@@ -25,6 +25,8 @@ def add_wait(slide: Slide):
     if slide.window is not None:
         slide.window.fixed_aspect_ratio = 3024.0 / 1964.0
         slide.window.set_default_viewport()
+        slide.show_animation_progress = True
+        slide.leave_progress_bars = True
 
     def on_resize(width: int, height: int):
         if slide.window is not None:
@@ -43,15 +45,50 @@ class FirstTitle(Slide):
     def construct(self):
         add_wait(self)
 
-        text = Title("Dynamics of Rational Root-Finding Methods", font_size=60).center()
+        title = (
+            Title(
+                "Finding Roots of Complex Polynomials\\\\with Newton's Method",
+                font_size=60,
+            )
+            .center()
+            .shift(UP)
+        )
 
-        self.play(Write(text))
+        self.play(Write(title))
 
-        author = TexText("Kishan S Patel").next_to(text, BOTTOM).set_opacity(0)
+        presenter = (
+            TexText(
+                r"Presented by",
+                r"\textit{Kishan S Patel}",
+                font_size=45,
+                t2c={r"\textit{Kishan S Patel}": BLUE_A},
+                fill_color=GREY_B,
+            )
+            .set_opacity(0)
+            .next_to(title, DOWN * 2)
+        )
+
+        AUTHOR_NAME = "Scott Sutherland"
+
+        author = (
+            TexText(
+                r"Based on the dissertation written by ",
+                f"\\textit{{{AUTHOR_NAME}}}",
+                isolate={AUTHOR_NAME},
+                t2c={AUTHOR_NAME: GREEN_A},
+                fill_color=GREY_B,
+                font_size=35,
+            )
+            .set_opacity(0)
+            .next_to(presenter, DOWN)
+        )
 
         self.play(
-            Write(author),
-            author.animate.next_to(text, BOTTOM),
+            AddTextWordByWord(presenter),
+            AddTextWordByWord(author),
+            presenter.animate.next_to(title, DOWN),
+            author.animate.next_to(presenter, DOWN),
+            presenter.animate.set_opacity(1),
             author.animate.set_opacity(1),
         )
 
@@ -59,19 +96,29 @@ class FirstTitle(Slide):
 
         goals_title = Title("Goals").shift(np.array(*DOWN) * 0.5)
 
-        self.play(FadeOut(text), FadeOut(author), Write(goals_title))
+        self.play(
+            TransformMatchingTex(title, goals_title),
+            FadeOut(presenter),
+            FadeOut(author),
+        )
 
         goals = BulletedList(
+            r"Slight review",
             r"How does Newtons Method work in $\mathbb C$?",
-            r"When does Newtons Method fail?",
             r"Pretty Fractals ",
-            r"Why should we care?",
-            r"How can this apply to other fractals?",
+            r"Different ways to view Newtons Method",
         ).next_to(goals_title, DOWN * 1.2)
 
-        # newtons method in CC
+        curr_goal = -1
+
         self.next_slide()
-        self.play(Write(goals[0]))
+        curr_goal += 1
+        self.next_slide(notes="Some slight review of what Newtons is")
+
+        # newtons method in CC
+        self.next_slide(notes="How does newtons method extend to the complex numbers?")
+        curr_goal += 1
+        self.play(Write(goals[curr_goal]))
 
         # newtons method fails
         self.next_slide()
@@ -100,8 +147,9 @@ class FirstTitle(Slide):
             Arrow(dot2, dot1, **kw, fill_color=BLUE_A),
         )
 
+        curr_goal += 1
         self.play(
-            Write(goals[1]),
+            Write(goals[curr_goal]),
             LaggedStart(
                 FadeIn(fractals_plane),
                 FadeIn(dot1),
@@ -116,21 +164,14 @@ class FirstTitle(Slide):
         # newtons method fractals
         self.next_slide()
 
-        self.play(
-            Wipe(
-                current=(dot1, dot2, arrows, fractals_plane),
-                shift=DOWN,
-            ),
-            Write(goals[2]),
-        )
-
-        # why should we care
-        self.next_slide()
-        self.play(Write(goals[3]))
-
-        # How can we apply to other fractals
-        self.next_slide()
-        self.play(Write(goals[4]))
+        # curr_goal += 1
+        # self.play(
+        #     Wipe(
+        #         current=(dot1, dot2, arrows, fractals_plane),
+        #         shift=DOWN,
+        #     ),
+        #     Write(goals[curr_goal]),
+        # )
 
         self.next_slide()
         self.wipe(self.mobjects_without_canvas)

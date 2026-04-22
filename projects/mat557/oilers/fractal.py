@@ -202,6 +202,7 @@ class FractalNewton(ShaderMobject):
 
         for i, r in enumerate(self.roots):
             self.uniforms[f"u_root{i + 1}"] = c2v(r)
+            self.uniforms["u_degree"] = i + 1
 
         return self
 

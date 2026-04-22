@@ -2,6 +2,16 @@
 
 precision highp float;
 
+// Math Constants
+const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
+
+// What counts as 'close-enough' / minimum number we really care about
+uniform float u_epsilon = 1E-3f;
+
+// number of iterations before quitting
+uniform uint u_max_iterations = 500u;
+
+// enums for what method to use
 const uint METHOD_NEWTON = 0u;
 const uint METHOD_HALLEY = 1u;
 const uint METHOD_YOUNG_OILER = 2u;
@@ -9,53 +19,79 @@ const uint METHOD_OILER = 3u;
 const uint METHOD_LATTE = 4u;
 const uint METHOD_SECANT = 5u;
 
+// enums for how to color limit behaviors
 const uint COLOR_DOMAIN = 0u;
 const uint COLOR_LIMITING = 1u;
-
-const uint MAX_ROOTS = 3u;
-
-const float GOLDEN_RATIO = (1 + sqrt(5.)) / 2.;
-uniform float u_epsilon = 1E-5f;
-
-uniform vec2 u_oiler_offset = vec2(GOLDEN_RATIO, 0.);
-uniform vec2 u_secant_offset = vec2(0.01, 0.0);
-
-#INSERT finalize_color.glsl
-
-uniform float scale_factor;
-
-uniform float u_julia_highlight = 0.0;
-
-uniform uint u_should_color_cycles = 1u;
-
-uniform uint u_max_iterations = 500u;
-
-uniform vec4 u_color_infinity;
-uniform vec4 u_color_cycle;
-
-uniform uint u_should_break_on_convergence = 0u;
-
-uniform vec4 u_color1;
-uniform vec4 u_color2;
-uniform vec4 u_color3;
-
-uniform vec2 u_root1;
-uniform vec2 u_root2;
-uniform vec2 u_root3;
-
-uniform vec2 u_z0 = vec2(0.);
 
 uniform uint u_mode = METHOD_NEWTON;
 
 uniform uint u_color_mode = COLOR_LIMITING;
 
+uniform vec2 u_oiler_offset = vec2(GOLDEN_RATIO, 0.);
+
+uniform vec2 u_secant_offset = vec2(0.01, 0.0);
+
+uniform float scale_factor = 1.0;
+
+uniform float u_julia_highlight = 0.0;
+
+// whether or not iteration's should stop when we converge to a root, if this is off then this will instead stop when the step size is too small
+uniform uint u_should_break_on_convergence = 0u;
+
+// Constants for polynomial control
+const uint MAX_ROOTS = 10u;
+const uint MAX_COEFS = MAX_ROOTS + 1u;
+
+// degree of polynomial, basically the number of roots
+uniform uint u_degree = 3u;
+
+// Different roots for the polynomial
+uniform vec2 u_root1 = vec2(0., 0.);
+uniform vec2 u_root2 = vec2(0., 0.);
+uniform vec2 u_root3 = vec2(0., 0.);
+uniform vec2 u_root4 = vec2(0., 0.);
+uniform vec2 u_root5 = vec2(0., 0.);
+uniform vec2 u_root6 = vec2(0., 0.);
+uniform vec2 u_root7 = vec2(0., 0.);
+uniform vec2 u_root8 = vec2(0., 0.);
+uniform vec2 u_root9 = vec2(0., 0.);
+uniform vec2 u_root10 = vec2(0., 0.);
+
+// Color of said roots
+uniform vec4 u_color1 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color2 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color3 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color4 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color5 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color6 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color7 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color8 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color9 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color10 = vec4(vec3(1., 0., 0.), 1.);
+
+uniform uint u_should_color_cycles = 1u;
+
+// color for when seed blows up to infinity
+uniform vec4 u_color_infinity = vec4(1.);
+
+// color for when seed falls in cycle, only used if u_should_color_cycles is 1
+uniform vec4 u_color_cycle = vec4(0., 0., 0., 1.);
+
+uniform vec2 u_z0 = vec2(0.);
+
+// whether or not to vary the brighness of a pixel based on hwo fast it converges
 uniform uint u_do_iteration_coloring = 1u;
+
+// whether or not to color in parameter-space mode
 uniform uint u_parametric = 0u;
 
-uniform float u_opacity = 1.0;
-
+// control for the relaxed newton's method, N(z) = z - u_relaxed_newtons * P(z)/P'(z)
 uniform float u_relaxed_newtons = 1.0f;
 
+// global opacity
+uniform float u_opacity = 1.0;
+
+// Fragment Shader Inputs and Outputs
 in vec3 xyz_coords;
 
 out vec4 frag_color;
@@ -153,28 +189,55 @@ vec3 oklch_to_rgb(vec3 lch) {
     return clamp(srgb, 0.0, 1.0);
 }
 
+vec4 index_to_color(uint index) {
+    switch (index + 1u) {
+        case 1u:
+        return u_color1;
+        case 2u:
+        return u_color2;
+        case 3u:
+        return u_color3;
+        case 4u:
+        return u_color4;
+        case 5u:
+        return u_color5;
+        case 6u:
+        return u_color6;
+        case 7u:
+        return u_color7;
+        case 8u:
+        return u_color8;
+        case 9u:
+        return u_color9;
+        case 10u:
+        return u_color10;
+        default:
+        return vec4(0., 0., 0., 1.);
+    }
+}
+
 // ======================
 //   Complex Operations
 // ======================
 
 // Complex math helper functions
-vec2 cmul(vec2 a, vec2 b) {
+vec2 cmul(in vec2 a, in vec2 b) {
     return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
 }
 
-vec2 cdiv(vec2 a, vec2 b) {
+vec2 cdiv(in vec2 a, in vec2 b) {
     return vec2(a.x * b.x + a.y * b.y, a.y * b.x - a.x * b.y) / dot(b, b);
 }
 
-vec2 csub(vec2 a, vec2 b) {
+vec2 csub(in vec2 a, in vec2 b) {
     return a - b;
 }
 
-vec2 cadd(vec2 a, vec2 b) {
+vec2 cadd(in vec2 a, in vec2 b) {
     return a + b;
 }
 
-vec2 cpowi(vec2 z, int m) {
+vec2 cpowi(in vec2 z, in int m) {
     vec2 s = vec2(1., 0.);
 
     for (int i = 0; i < abs(m); i++) s = cmul(s, z);
@@ -189,6 +252,90 @@ vec2 cpowi(vec2 z, int m) {
 
 vec2 cexp(vec2 z) {
     return exp(z.x) * vec2(cos(z.y), sin(z.y));
+}
+
+struct Polynomial {
+    vec2 coefs[MAX_COEFS];
+    vec2 roots[MAX_ROOTS];
+    uint degree;
+};
+
+// void roots_to_coefs(in vec2 roots[MAX_ROOTS], in uint degree, out vec2 coefs[MAX_COEFS]) {
+void roots_to_coefs(inout Polynomial polynomial) {
+    for (uint i = 0u; i < MAX_COEFS; i++) polynomial.coefs[i] = vec2(0.0);
+    polynomial.coefs[0] = vec2(1.0, 0.0); // Start with P(z) = 1
+
+    for (uint i = 0u; i < polynomial.degree; i++) {
+        vec2 root = polynomial.roots[i];
+
+        // multiply the curr polynomial by (z - root)
+        // temp = coefs * -root + coefs_shifted * 1
+        vec2 next_coefs[MAX_COEFS];
+
+        for (uint j = 0u; j < MAX_COEFS; j++) next_coefs[j] = vec2(0.0);
+
+        for (uint j = 0u; j <= i; j++) {
+            // new coeff = prev coeff * -root + prev_coeff_shifted
+            next_coefs[j] += cmul(polynomial.coefs[j], -root);
+            next_coefs[j + 1u] += polynomial.coefs[j];
+        }
+        polynomial.coefs = next_coefs;
+    }
+}
+
+// populates the uniform roots into the root array
+void populate_uniform_roots(out vec2 roots[MAX_ROOTS], out uint degree) {
+    roots = vec2[](
+            u_root1,
+            u_root2,
+            u_root3,
+            u_root4,
+            u_root5,
+            u_root6,
+            u_root7,
+            u_root8,
+            u_root9,
+            u_root10
+        );
+    degree = u_degree;
+}
+
+// populates a given root array, num of roots, and coefs with the roots & coefficients of the polynomial described via the uniforms u_root[1:10], with this polynomial being of degree u_degree
+void populate_uniform_poylnomial(inout Polynomial polynomial) {
+    populate_uniform_roots(polynomial.roots, polynomial.degree);
+    roots_to_coefs(polynomial);
+}
+
+/// Evaluate given polynomial at z
+vec2 Polynomial_eval(in Polynomial polynomial, in vec2 z) {
+    vec2 result = vec2(0.0);
+
+    for (int i = int(polynomial.degree); i >= 0; i--) {
+        result = cmul(result, z) + polynomial.coefs[i];
+    }
+
+    return result;
+}
+
+/// evaluate first derivative P'(z)
+vec2 Polynomial_eval_deriv1(in Polynomial polynomial, in vec2 z) {
+    vec2 result = vec2(0.0);
+    for (int i = int(polynomial.degree); i >= 1; i--) {
+        // P'(z) = Sum(i * a_i * z^(i-1))
+        vec2 term = polynomial.coefs[i] * float(i);
+        result = cmul(result, z) + term;
+    }
+    return result;
+}
+
+/// Evaluate second derivative P''(z)
+vec2 Poly_eval_deriv2(in Polynomial polynomial, in vec2 z) {
+    vec2 result = vec2(0.0);
+    for (int i = int(polynomial.degree); i >= 2; i--) {
+        vec2 term = polynomial.coefs[i] * float(i * (i - 1));
+        result = cmul(result, z) + term;
+    }
+    return result;
 }
 
 vec2 cubic_P(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
@@ -224,15 +371,18 @@ vec2 d2f(vec2 z) {
 //         METHODS
 // ======================
 
-vec2 newton(vec2 z) {
-    return z - cdiv(f(z), df(z)) * u_relaxed_newtons;
+vec2 newton(
+    in Polynomial polynomial,
+    in vec2 z
+) {
+    return z - u_relaxed_newtons * cdiv(Polynomial_eval(polynomial, z), Polynomial_eval_deriv1(polynomial, z));
 }
 
-vec2 newton(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
+vec2 newton(in vec2 z, in vec2 r1, in vec2 r2, in vec2 r3) {
     return z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3)) * u_relaxed_newtons;
 }
 
-vec2 deriv_newton(vec2 z) {
+vec2 deriv_newton(in vec2 z) {
     return cdiv(
         cmul(d2f(z), f(z)),
         cmul(df(z), df(z))
@@ -293,11 +443,37 @@ vec2 latte(vec2 z) {
     return cdiv(cpowi(cpowi(z, 2) + vec2(1., 0.), 2), cmul(4. * z, cpowi(z, 2) - vec2(1., 0.)));
 }
 
-float min_root_distance(vec2 z, vec2 r1, vec2 r2, vec2 r3) {
-    float d1 = dot(r1 - z, r1 - z);
-    float d2 = dot(r2 - z, r2 - z);
-    float d3 = dot(r3 - z, r3 - z);
-    return sqrt(min(d1, min(d2, d3)));
+bool close_enough_to_root(in Polynomial polynomial, in vec2 z, float epsilon) {
+    for (uint i = 0u; i < polynomial.degree; i++) {
+        if (dot(z - polynomial.roots[i], z - polynomial.roots[i]) < epsilon * epsilon) return true;
+    }
+
+    return false;
+}
+
+bool close_enough_to_root(in Polynomial polynomial, in vec2 z) {
+    return close_enough_to_root(polynomial, z, u_epsilon);
+}
+
+float min_root_distance(in Polynomial polynomial, in vec2 z, out uint min_index) {
+    min_index = 0u;
+
+    if (polynomial.degree == 0u) {
+        return 1E99;
+    }
+
+    float min_dist = dot(polynomial.roots[0] - z, polynomial.roots[0] - z);
+
+    for (uint i = 1u; i < polynomial.degree; i++) {
+        float dist_to_root = dot(polynomial.roots[i] - z, polynomial.roots[i] - z);
+
+        if (dist_to_root < min_dist) {
+            min_dist = dist_to_root;
+            min_index = i;
+        }
+    }
+
+    return sqrt(min_dist);
 }
 
 vec4 domain_color_complex(vec2 z) {
@@ -329,25 +505,19 @@ vec4 domain_color_complex(vec2 z) {
 vec4 limit_color_complex(
     vec2 z,
     float iterations,
-    vec2 r1,
-    vec2 r2,
-    vec2 r3
+    Polynomial polynomial
 ) {
     if (any(isnan(z)) || any(isinf(z))) return u_color_infinity;
 
-    if (u_should_color_cycles == 1u && min_root_distance(z, r1, r2, r3) > u_epsilon) {
+    uint min_root_index;
+
+    float min_dist = min_root_distance(polynomial, z, min_root_index);
+
+    if (u_should_color_cycles == 1u && min_dist > u_epsilon) {
         return u_color_cycle;
     }
 
-    float d1 = length(r1 - z);
-    float d2 = length(r2 - z);
-    float d3 = length(r3 - z);
-
-    vec4 color = vec4(0.);
-
-    if (d1 <= min(d2, d3)) color = u_color1;
-    else if (d2 <= min(d1, d3)) color = u_color2;
-    else if (d3 <= min(d1, d2)) color = u_color3;
+    vec4 color = index_to_color(min_root_index);
 
     // if (u_do_iteration_coloring) {
     // color *= 0.5f - 10.f * log(0.9f - 1.1f * float(iterations) / float(u_max_iterations));
@@ -374,9 +544,23 @@ vec4 limit_color_complex(
     return color;
 }
 
-void single_iteration(inout vec2 z, inout vec2 zp, inout vec2 zpp, vec2 r1, vec2 r2, vec2 r3, uint iter_mode) {
+void iteration_setup(vec2 initial_z, inout vec2 z, inout vec2 zp, inout vec2 zpp, uint iter_mode) {
+    if (iter_mode == METHOD_OILER || iter_mode == METHOD_YOUNG_OILER) {
+        zpp = initial_z;
+        zp = zpp + u_oiler_offset;
+        z = zp - cdiv(f(zp), cdiv(f(zp) - f(zpp), zp - zpp));
+    } else if (iter_mode == METHOD_SECANT) {
+        zp = initial_z;
+        z = zp + u_secant_offset;
+    } else
+    {
+        z = initial_z;
+    }
+}
+
+void single_iteration(in Polynomial polynomial, inout vec2 z, inout vec2 zp, inout vec2 zpp, uint iter_mode) {
     if (iter_mode == METHOD_NEWTON) {
-        z = newton(z);
+        z = newton(polynomial, z);
     }
     else if (iter_mode == METHOD_HALLEY) {
         z = halley(z);
@@ -393,20 +577,7 @@ void single_iteration(inout vec2 z, inout vec2 zp, inout vec2 zpp, vec2 r1, vec2
     }
 }
 
-void iteration_setup(vec2 initial_z, inout vec2 z, inout vec2 zp, inout vec2 zpp, uint iter_mode) {
-    if (iter_mode == METHOD_OILER || iter_mode == METHOD_YOUNG_OILER) {
-        zpp = initial_z;
-        zp = zpp + u_oiler_offset;
-        z = zp - cdiv(f(zp), cdiv(f(zp) - f(zpp), zp - zpp));
-    } else if (iter_mode == METHOD_SECANT) {
-        zp = initial_z;
-        z = zp + u_secant_offset;
-    } else
-    {
-        z = initial_z;
-    }
-}
-vec2 iterate_method(vec2 initial_z, out uint i, uint iter_mode, out float fiters) {
+vec2 iterate_method(in Polynomial polynomial, vec2 initial_z, out uint i, uint iter_mode, out float float_iters) {
     vec2 zpp, zp, z;
 
     iteration_setup(initial_z, z, zp, zpp, iter_mode);
@@ -416,9 +587,9 @@ vec2 iterate_method(vec2 initial_z, out uint i, uint iter_mode, out float fiters
     for (i = 0u; i < u_max_iterations; i++) {
         vec2 previous_z = z;
 
-        single_iteration(z, zp, zpp, u_root1, u_root2, u_root3, iter_mode);
+        single_iteration(polynomial, z, zp, zpp, iter_mode);
 
-        fiters = float(i);
+        float_iters = float(i);
         curr_len = length(previous_z - z);
 
         if (u_should_break_on_convergence == 0u) {
@@ -427,16 +598,14 @@ vec2 iterate_method(vec2 initial_z, out uint i, uint iter_mode, out float fiters
             }
         }
         else {
-            if (min_root_distance(z, u_root1, u_root2, u_root3) < u_epsilon) {
+            if (close_enough_to_root(polynomial, z)) {
                 break;
             }
         }
     }
 
-    float e = abs(min_root_distance(z, u_root1, u_root2, u_root3));
-
     if (u_should_break_on_convergence == 0u) {
-        fiters -= log(curr_len) / log(u_epsilon);
+        float_iters -= log(curr_len) / log(u_epsilon);
     }
 
     return z;
@@ -447,40 +616,41 @@ vec4 Parametric_newton(vec2 r1, vec2 r2, vec2 r3) {
     vec2 z = z0;
 
     uint i = 0u;
+
+    Polynomial polynomial;
+    polynomial.degree = 3u;
+    polynomial.roots[0] = r1;
+    polynomial.roots[1] = r2;
+    polynomial.roots[2] = r3;
+
     for (; i < u_max_iterations; i++) {
         // z = z - cdiv(cubic_P(z, r1, r2, r3), cubic_dP(z, r1, r2, r3));
-        z = newton(z, r1, r2, r3);
-        if (min_root_distance(z, r1, r2, r3) < u_epsilon) break;
+        z = newton(polynomial, z);
+        if (close_enough_to_root(polynomial, z)) break;
     }
 
     if (u_color_mode == COLOR_DOMAIN) {
         return domain_color_complex(z);
     } else if (u_color_mode == COLOR_LIMITING) {
-        return limit_color_complex(z, i, r1, r2, r3);
+        return limit_color_complex(z, i, polynomial);
     } else {
         return vec4(0.);
     }
 }
 
-void main() {
-    vec2 pixel_z = xyz_coords.xy;
+void fragment_seedspace(out vec4 color, in vec2 pixel_z) {
+    uint iterations;
+    float f_iters;
 
-    vec4 color = vec4(1.);
+    Polynomial polynomial;
+    populate_uniform_poylnomial(polynomial);
 
-    if (u_parametric == 0u) {
-        uint iterations;
-        float f_iters;
+    vec2 z = iterate_method(polynomial, pixel_z, iterations, u_mode, f_iters);
 
-        vec2 z = iterate_method(pixel_z, iterations, u_mode, f_iters);
-
-        if (u_color_mode == COLOR_DOMAIN) {
-            color = domain_color_complex(z);
-        } else if (u_color_mode == COLOR_LIMITING) {
-            color = limit_color_complex(z, f_iters, u_root1, u_root2, u_root3);
-        }
-    } else if (u_parametric == 1u) {
-        uint iterations;
-        color = Parametric_newton(pixel_z, u_root2, u_root3);
+    if (u_color_mode == COLOR_DOMAIN) {
+        color = domain_color_complex(z);
+    } else if (u_color_mode == COLOR_LIMITING) {
+        color = limit_color_complex(z, f_iters, polynomial);
     }
 
     // julia boundry highlights
@@ -503,7 +673,7 @@ void main() {
 
         for (uint i = 0u; i < NUM_SAMPLES; i++) {
             for (uint j = 0u; j < u_max_iterations; j++) {
-                single_iteration(z[i], zp[i], zpp[i], u_root1, u_root2, u_root3, u_mode);
+                single_iteration(polynomial, z[i], zp[i], zpp[i], u_mode);
             }
         }
 
@@ -513,6 +683,24 @@ void main() {
 
         color *= 1.0 * smoothstep(0., 0.1, max_dist);
     }
+}
 
+vec4 fragment(in vec2 pixel_z) {
+    vec4 color = vec4(1.);
+
+    if (u_parametric == 0u) {
+        fragment_seedspace(color, pixel_z);
+    } else if (u_parametric == 1u) {
+        uint iterations;
+        color = Parametric_newton(pixel_z, u_root2, u_root3);
+    }
+
+    return color;
+}
+
+#INSERT finalize_color.glsl
+
+void main() {
+    vec4 color = fragment(xyz_coords.xy);
     frag_color = finalize_color(vec4(color.rgb, color.a * u_opacity), xyz_coords, vec3(0.0, 0.0, 1.0));
 }
