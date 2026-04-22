@@ -39,7 +39,7 @@ uniform float u_julia_highlight = 0.0;
 uniform uint u_should_break_on_convergence = 0u;
 
 // Constants for polynomial control
-const uint MAX_ROOTS = 10u;
+const uint MAX_ROOTS = 12u;
 const uint MAX_COEFS = MAX_ROOTS + 1u;
 
 // degree of polynomial, basically the number of roots
@@ -56,6 +56,8 @@ uniform vec2 u_root7 = vec2(0., 0.);
 uniform vec2 u_root8 = vec2(0., 0.);
 uniform vec2 u_root9 = vec2(0., 0.);
 uniform vec2 u_root10 = vec2(0., 0.);
+uniform vec2 u_root11 = vec2(0., 0.);
+uniform vec2 u_root12 = vec2(0., 0.);
 
 // Color of said roots
 uniform vec4 u_color1 = vec4(vec3(1., 0., 0.), 1.);
@@ -68,6 +70,8 @@ uniform vec4 u_color7 = vec4(vec3(1., 0., 0.), 1.);
 uniform vec4 u_color8 = vec4(vec3(1., 0., 0.), 1.);
 uniform vec4 u_color9 = vec4(vec3(1., 0., 0.), 1.);
 uniform vec4 u_color10 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color11 = vec4(vec3(1., 0., 0.), 1.);
+uniform vec4 u_color12 = vec4(vec3(1., 0., 0.), 1.);
 
 uniform uint u_should_color_cycles = 1u;
 
@@ -190,30 +194,22 @@ vec3 oklch_to_rgb(vec3 lch) {
 }
 
 vec4 index_to_color(uint index) {
-    switch (index + 1u) {
-        case 1u:
-        return u_color1;
-        case 2u:
-        return u_color2;
-        case 3u:
-        return u_color3;
-        case 4u:
-        return u_color4;
-        case 5u:
-        return u_color5;
-        case 6u:
-        return u_color6;
-        case 7u:
-        return u_color7;
-        case 8u:
-        return u_color8;
-        case 9u:
-        return u_color9;
-        case 10u:
-        return u_color10;
-        default:
-        return vec4(0., 0., 0., 1.);
-    }
+    vec4 u_colors[MAX_ROOTS] = vec4[](
+            u_color1,
+            u_color2,
+            u_color3,
+            u_color4,
+            u_color5,
+            u_color6,
+            u_color7,
+            u_color8,
+            u_color9,
+            u_color10,
+            u_color11,
+            u_color12
+        );
+
+    return u_colors[index];
 }
 
 // ======================
@@ -295,7 +291,9 @@ void populate_uniform_roots(out vec2 roots[MAX_ROOTS], out uint degree) {
             u_root7,
             u_root8,
             u_root9,
-            u_root10
+            u_root10,
+            u_root11,
+            u_root12
         );
     degree = u_degree;
 }

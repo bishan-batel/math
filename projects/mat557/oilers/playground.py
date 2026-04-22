@@ -37,7 +37,7 @@ class Playground(Slide):
 
         self.method = newtons
 
-        # DEFAULT_COEFFICIENTS = np.array([-5, 4, 0, 1])
+        # DEFAULT_COEFFICIENTS = np.orray([-5, 4, 0, 1])
         # COEFFICIENTS = np.array([2, -2, 0, 1])
 
         relaxed = ValueTracker(1)
@@ -208,7 +208,7 @@ class Playground(Slide):
                 *(
                     root.animate(run_time=speed).set_value(
                         np.exp(random.random() * 2 * PI * 1j)
-                        * np.log(1e-3 + random.random())
+                        * np.exp(-random.random())
                         * scale
                     )
                     for root in self.roots

@@ -31,7 +31,7 @@ def c2v(a: complex):
 
 
 class FractalNewton(ShaderMobject):
-    MAX_DEGREE = 10
+    MAX_DEGREE = 12
 
     scene: Scene | None = None
     colors: list[Color] = []
