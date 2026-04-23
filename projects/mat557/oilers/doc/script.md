@@ -34,3 +34,5 @@
 - This means viewing our iterative function / map from a map between the real numbers to the real numbers as instead a map between the complex numbers to the complex numbers 
     - well technically most literature talks about map as one from the Rieman Sphere unto itself, also known as the extended complex numbers 
     - The key reason why this is done is that its simply a 'compact' set of the complex numbers adjoined with the point at infinity
+
+## Newtons Fractal Intro/Complex Plane
