@@ -36,3 +36,17 @@
     - The key reason why this is done is that its simply a 'compact' set of the complex numbers adjoined with the point at infinity
 
 ## Newtons Fractal Intro/Complex Plane
+- Pretty visuals 
+- Zooming into parts of complexity
+- Zoom into a basin & explain what a basin of a fixed point is
+- Bring back seed values and see where it goes crazy 
+- Third roots of unity example
+- Boundry property still holds 
+- We can study the chaos of this set by studying the boundry
+- This fractal seems to hold for many different fractals 
+- There are a lot of questions you might ask, like if the fractal has some form of symmetry?
+    - you can rotate it and its left looking the same (with colors swapped)
+    - you can move it around
+    - the formal description is that the map N(z) is affine invariant
+- What this means is to study these maps on polynomials, we can apply a transformation to bring all rots within the unit circle to make things easier 
+- This is done by just applying the map for each root, that is scaling them down by the length of the largest root. Note that this doesn't require you to know the roots already - as you can compute teh 'Cauchy Bound' of the polynomial through its coefficients to get the maximum magnitude a root of said polynomial could be

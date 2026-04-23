@@ -1511,11 +1511,10 @@ class NewtonComplex(ThreeDSlide):
 
 class AbstractNewtonFractal(Slide):
     roots = [
-        ComplexValueTracker(np.exp(1j * i / float(FractalNewton.MAX_DEGREE)))
-        for i in range(FractalNewton.MAX_DEGREE)
+        ComplexValueTracker(-100j + i * 1j) for i in range(FractalNewton.MAX_DEGREE)
     ]
 
-    degree = 3
+    degree = 5
 
     plane: ComplexPlane
     fractal: FractalNewton
@@ -1526,7 +1525,7 @@ class AbstractNewtonFractal(Slide):
     show_path = True
 
     def curr_roots(self):
-        return self.roots[0 : (self.degree - 1)]
+        return self.roots[0 : (self.degree)]
 
     def f(self, z: complex):
         return Polynomial.fromroots([r.get_value() for r in self.curr_roots()])(z)
@@ -1636,7 +1635,7 @@ class AbstractNewtonFractal(Slide):
                 lambda: (
                     self.plane.n2p(complex(self.roots[i].get_value()))
                     if i < self.degree
-                    else self.plane.n2p(500j + 1j)
+                    else self.plane.n2p(-500j)
                 )
             )
 
@@ -1645,9 +1644,6 @@ class AbstractNewtonFractal(Slide):
                     dot,
                     stroke_color=dot.fill_color,
                 )
-            )
-            self.root_trails[-1].f_always.set_opacity(
-                lambda: 1 if i < self.degree else 0
             )
             return dot
 
@@ -1886,12 +1882,19 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         self.play(FadeOut(tri_poly))
 
-        def set_roots(roots=[0, 0, 0], **kwargs):
-            self.degree = len(roots)
+        def set_roots(roots=[0, 0, 0], dist_based=False, run_time=1.0, **kwargs):
+            # self.degree = len(roots)
             self.play(
                 *(
-                    root.animate(**kwargs).set_value(nr)
-                    for root, nr in zip(self.roots, roots)
+                    root.animate(
+                        run_time=(
+                            run_time + max(0, abs(root.get_value() - nr) * 0.05 - 1)
+                            if dist_based
+                            else run_time
+                        ),
+                        **kwargs,
+                    ).set_value(nr)
+                    for root, nr in zip(self.curr_roots(), roots)
                 )
             )
 
@@ -1945,23 +1948,172 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             fractal_opacity.animate.set_value(1),
             julia_fractal_opacity.animate.set_value(0.0),
             FadeIn(root_dots),
+            FadeOut(chaos_relation),
         )
 
         self.remove(julia_fractal)
 
         def apply_to_roots(func: Callable[[complex], complex], **kwargs):
-            set_roots([func(complex(r.get_value())) for r in self.roots], **kwargs)
+            set_roots(
+                [func(complex(r.get_value())) for r in self.curr_roots()], **kwargs
+            )
 
         apply_to_roots(lambda z: z * np.exp(2j * PI / 3))
 
-        self.wait(1)
+        # =====================================================================
+        self.next_slide(
+            notes="Another fact is this fractal / map stays similar if we just translate or scale the roots by some complex value"
+        )
 
         apply_to_roots(lambda z: z + 1j, run_time=0.5)
         apply_to_roots(lambda z: z + 1, run_time=0.5)
-        apply_to_roots(lambda z: z - 1j, run_time=0.5)
-        apply_to_roots(lambda z: z - 1, run_time=0.5)
+        apply_to_roots(lambda z: 1j * z - 1j, run_time=0.5)
+        apply_to_roots(lambda z: 1j * z - 1, run_time=0.5)
 
+        self.next_slide(
+            notes="The more formal way to say this is that our map has affine invariance"
+        )
+
+        tex_kw = {
+            "isolate": ["{N}", "{P}", "{P}'", "{z}", "{a}", "{b}", "{c}", "{d}"],
+            "t2c": {
+                "{N}": YELLOW_B,
+                "{P}": GREY_A,
+                "{P'}": GREY_A,
+                "{p}": TEAL_A,
+                "{q}": TEAL_B,
+                "{z}": BLUE_A,
+                "{i}": TEAL_A,
+                "{a}": LIGHT_PINK,
+                "{b}": LIGHT_PINK,
+                "{c}": LIGHT_PINK,
+                "{d}": LIGHT_PINK,
+                "{r}": RED_A,
+                "{r_i}": RED_A,
+            },
+        }
+
+        newton_map_properties = (
+            VGroup(
+                Tex(r"{N}_{P}({z}) = {z} - \frac{{P}({z})}{{P'}({z})} ", **tex_kw),
+                Tex(r"{q}({z}) = {p}({a}{z}+{b})", **tex_kw),
+                TexText(
+                    r"${N}_{p}$ is \textit{conjugate} to ${N}_{q}$ by the map ${z} \mapsto {a}{z}+{b}$",
+                    **tex_kw,
+                ),
+                TexText(r"${N}_{P}$ is an \textit{affine invariant map}", **tex_kw),
+            )
+            .arrange(DOWN)
+            .set_z_index(101)
+        )
+
+        labels = VGroup(
+            BraceText(
+                newton_map_properties[2].get_parts_by_tex("{a}{z}"),
+                r"Rotation \& Scale",
+                brace_direction=UP,
+                label_scale=0.5,
+            ).shift(LEFT * 0.4),
+            BraceText(
+                newton_map_properties[2].get_part_by_tex("{b}"),
+                "Translation",
+                label_scale=0.5,
+            ),
+        ).set_z_index(102)
+
+        newton_map_background = BackgroundRectangle(
+            newton_map_properties,
+            buff=LARGE_BUFF,
+            stroke_width=5,
+            stroke_opacity=1,
+            fill_opacity=0.8,
+        ).set_z_index(100)
+
+        self.play(FadeIn(newton_map_background), Write(newton_map_properties))
+
+        self.next_slide("The affine in this part just refers to rotation and scale")
+        self.play(Write(labels))
+
+        self.next_slide(
+            "What this means is when we study these maps, what is done in Sutherland's paper other sources I've found is that instead of accounting for roots within the entire complex plane, we can focus our view to roots within the unit disk"
+        )
+
+        self.play(
+            FadeOut(newton_map_background),
+            FadeOut(labels),
+            FadeOut(newton_map_properties),
+        )
+
+        set_roots(
+            [
+                3.3 * np.exp(1.5j * PI / 3),
+                2.32 * np.exp(2.5j * PI / 3),
+                0.8 * np.exp(6.42j * PI / 3),
+                0.4 - 2j,
+                -5 - 0.5j,
+            ],
+            dist_based=True,
+        )
+
+        self.next_slide(
+            notes="You can apply this transform which just scales each root by the large absolute value of all of them which will bring them into the unit disk"
+        )
+
+        normal_map = Tex(
+            r"{z} \mapsto  \frac{z}{ \max\limits_{i} \left| {r_i} \right| } ",
+            **tex_kw,
+        ).to_corner(UL)
+
+        cauchy_bound_note = BraceText(
+            normal_map,
+            r"You could also use the \\ Cauchy's Bound of $p$ if you only \\ know the coefficients",
+            RIGHT,
+            label_scale=0.5,
+        )
+
+        normal_map_note = VGroup(normal_map, cauchy_bound_note).set_z_index(101)
+
+        normal_map_background = BackgroundRectangle(
+            normal_map_note,
+            buff=MED_SMALL_BUFF,
+            stroke_width=3,
+            stroke_opacity=1,
+            fill_opacity=0.8,
+        ).set_z_index(500)
+
+        self.play(
+            LaggedStart(
+                AnimationGroup(FadeIn(normal_map_background), Write(normal_map)),
+                Write(cauchy_bound_note),
+            ),
+        )
+
+        self.next_slide(
+            "Applying the transformation we can see that it does indeed lie on the disc and look similar"
+        )
+
+        unit_disc = Circle(
+            fill_color=BLACK, fill_opacity=0.4, stroke_color=WHITE, stroke_width=1
+        )
+
+        def max_root_dist():
+            return np.max([np.abs(r.get_value()) for r in self.curr_roots()])
+
+        apply_to_roots(lambda z: z / max_root_dist())
+        self.play(ShowCreation(unit_disc))
+
+        self.next_slide(
+            notes="Stepping away from the pretty visuals, theres still a lot more prelimaries needed to formalize this even more (also needed later on in the paper)"
+        )
+
+        self.frame.suspend_updating()
+        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
         self.embed()
+
+
+class NewtonPrelims(AbstractNewtonFractal):
+    def construct(self):
+        add_wait(self)
 
 
 class FixedPointMethod(Slide):
