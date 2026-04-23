@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
 from manimlib import *  # pyright:ignore
-from manimlib.typing import *  # pyright:ignore
+from manimlib.typing import *
+from scipy.optimize import newton, newton_krylov  # pyright:ignore
 
 from custom.typings import *  # pyright:ignore
 from custom.portrait import *  # pyright:ignore
@@ -94,10 +95,10 @@ class FirstTitle(Slide):
 
         self.next_slide(notes="A little goal layout")
 
-        goals_title = Title("Goals").shift(np.array(*DOWN) * 0.5)
+        goals_title = Title("Goals").to_edge(UP)
 
         self.play(
-            TransformMatchingTex(title, goals_title),
+            Transform(title, goals_title),
             FadeOut(presenter),
             FadeOut(author),
         )
@@ -105,15 +106,15 @@ class FirstTitle(Slide):
         goals = BulletedList(
             r"Slight review",
             r"How does Newtons Method work in $\mathbb C$?",
-            r"Pretty Fractals ",
-            r"Different ways to view Newtons Method",
-        ).next_to(goals_title, DOWN * 1.2)
+            r"How can we be sure that a given $z_0$ will converge to a root? ",
+            font_size=42,
+        ).next_to(goals_title, DOWN * 2)
 
         curr_goal = -1
 
-        self.next_slide()
-        curr_goal += 1
         self.next_slide(notes="Some slight review of what Newtons is")
+        curr_goal += 1
+        self.play(Write(goals[curr_goal]))
 
         # newtons method in CC
         self.next_slide(notes="How does newtons method extend to the complex numbers?")
@@ -121,48 +122,50 @@ class FirstTitle(Slide):
         self.play(Write(goals[curr_goal]))
 
         # newtons method fails
-        self.next_slide()
-
-        fractals_plane = (
-            ComplexPlane(
-                x_range=(-2, 2, 1),
-                y_range=(-2, 2, 1),
-                faded_line_ratio=1,
-                width=3.5,
-                height=3.5,
-                background_line_style={"stroke_width": 1.5, "stroke_opacity": 0.8},
-            )
-            .center()
-            .shift(DOWN * 1)
-        )
-
-        dot1, dot2 = (
-            Dot(fractals_plane.n2p(pos), radius=0.1, fill_color=BLUE)
-            for pos in [-0.5 + 1.5j, 1.5 - 1.5j]
-        )
-        kw = {"path_arc": PI / 3, "buff": 0.1, "thickness": 2.0}
-
-        arrows = VGroup(
-            Arrow(dot1, dot2, **kw, fill_color=BLUE_A),
-            Arrow(dot2, dot1, **kw, fill_color=BLUE_A),
-        )
-
+        self.next_slide(notes="When can we be sure newtons method converges?")
         curr_goal += 1
-        self.play(
-            Write(goals[curr_goal]),
-            LaggedStart(
-                FadeIn(fractals_plane),
-                FadeIn(dot1),
-                FadeIn(dot2),
-                Write(arrows, run_time=1.5),
-            ),
-        )
+        self.play(Write(goals[curr_goal]))
 
-        self.play(Swap(dot1, dot2))
-        self.play(Swap(dot1, dot2))
+        # fractals_plane = (
+        #     ComplexPlane(
+        #         x_range=(-2, 2, 1),
+        #         y_range=(-2, 2, 1),
+        #         faded_line_ratio=1,
+        #         width=3.5,
+        #         height=3.5,
+        #         background_line_style={"stroke_width": 1.5, "stroke_opacity": 0.8},
+        #     )
+        #     .center()
+        #     .shift(DOWN * 1)
+        # )
+
+        # dot1, dot2 = (
+        #     Dot(fractals_plane.n2p(pos), radius=0.1, fill_color=BLUE)
+        #     for pos in [-0.5 + 1.5j, 1.5 - 1.5j]
+        # )
+        # kw = {"path_arc": PI / 3, "buff": 0.1, "thickness": 2.0}
+        #
+        # arrows = VGroup(
+        #     Arrow(dot1, dot2, **kw, fill_color=BLUE_A),
+        #     Arrow(dot2, dot1, **kw, fill_color=BLUE_A),
+        # )
+        #
+        # curr_goal += 1
+        # self.play(
+        #     Write(goals[curr_goal]),
+        #     LaggedStart(
+        #         FadeIn(fractals_plane),
+        #         FadeIn(dot1),
+        #         FadeIn(dot2),
+        #         Write(arrows, run_time=1.5),
+        #     ),
+        # )
+        #
+        # self.play(Swap(dot1, dot2))
+        # self.play(Swap(dot1, dot2))
 
         # newtons method fractals
-        self.next_slide()
+        # self.next_slide()
 
         # curr_goal += 1
         # self.play(
@@ -185,7 +188,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
     def construct(self) -> None:
         add_wait(self)
 
-        title = Title("Newtons", "Method")
+        title = Title("Newtons", "Method", font_size=50)
         title_newton = title.select_part("Newtons")
         title_method = title.select_part("Method")
 
@@ -199,7 +202,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         portrait_newton = Group(
             PortraitWithCaption(
-                image_path="./image/isaac_newton.jpg", name="Isaac Newton", caption=""
+                image_path="./image/isaac_newton.jpg", name="Isaac Newton", caption=None
             ).shift(LEFT * 2.5),
             SurroundingRectangle(title_newton),
             Arrow(),
@@ -207,7 +210,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         portrait_method = Group(
             PortraitWithCaption(
-                image_path="./image/isaac_newton.jpg", name="John Method", caption=""
+                image_path="./image/isaac_newton.jpg", name="John Method", caption=None
             ).shift(RIGHT * 2.5),
             SurroundingRectangle(title_method),
             Arrow(),
@@ -217,6 +220,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         portrait_newton[2].become(
             Arrow(portrait_newton[1], portrait_newton[0], path_arc=PI / 6)
         )
+
         portrait_method[2].become(
             Arrow(portrait_method[1], portrait_method[0], path_arc=-PI / 6)
         )
@@ -297,7 +301,154 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         )
 
         self.next_slide(
-            notes="However, for this presentation, it makes more sense for us to shift the language from sequences to composition "
+            notes="A little side-note however, this method that everybody uses is *not* the method that Newton used"
+        )
+
+        analysi_newton = PortraitWithCaption(
+            "./image/analysi_newton",
+            name=r"\textit{De analysi per aequationes \\ numero terminoriaum infinitas}",
+            caption="1669/1704",
+            image_size=3,
+            name_size=30,
+            caption_size=20,
+            caption_color=YELLOW,
+        ).next_to(title, DOWN)
+
+        newtons_tex_seq.save_state()
+        iterative_tex.save_state()
+        self.play(
+            iterative_tex.animate.set_opacity(0),
+            newtons_tex_seq.animate.scale(0.7).to_corner(DL),
+            FadeIn(analysi_newton),
+        )
+
+        self.next_slide(
+            notes="This method looks pretty different than the one normally taught and used cause newton kinda made it feel really complicated"
+        )
+
+        newtons_kwargs = {
+            "isolate": ["y", "p", "q", "r"],
+            "t2c": {"y": BLUE_B, "p": BLUE_C, "q": GREEN_B, "r": GREEN_C},
+            "font_size": 40,
+        }
+        newtons_messed_up = VGroup(
+            Tex("y^3 - 2y -5 = 0", **newtons_kwargs),
+            Tex(r"y = 2 + p", **newtons_kwargs),
+            Tex(r"p^3 + 6p^2 + 10p -1=0", **newtons_kwargs),
+            Tex(r"p = 0.1 + q", **newtons_kwargs),
+            Tex(r"q^3 + 6.3q^2 + 11.23 q + 0.061", **newtons_kwargs),
+            Tex(r"q = -0.0054-r", **newtons_kwargs),
+            Tex("\\vdots", **newtons_kwargs),
+            Tex(r"y=2+0.1-0.0054-0.00004854", **newtons_kwargs),
+            Tex(r"y=2.09455147", **newtons_kwargs),
+        ).arrange(DOWN)
+
+        self.play(FadeOut(analysi_newton), Write(newtons_messed_up[0]))
+
+        for i in range(1, len(newtons_messed_up) - 1):
+            self.play(
+                TransformMatchingTex(
+                    newtons_messed_up[i - 1].copy(),
+                    newtons_messed_up[i],
+                    run_time=1.0,
+                    path_arc=5 * DEG,
+                )
+            )
+
+        newtons_messed_up[-1].move_to(newtons_messed_up[-2])
+
+        self.play(
+            TransformMatchingTex(
+                newtons_messed_up[-2],
+                newtons_messed_up[-1],
+                path_arc=10 * DEG,
+                run_time=1.0,
+            )
+        )
+
+        self.next_slide(
+            notes="After some amount of steps, he would settle on a root that was good enough for his needs - and this was the extent of Newton's involvement"
+        )
+
+        self.play(
+            ShowCreationThenDestruction(
+                SurroundingRectangle(newtons_messed_up[-1]), run_time=1.0
+            )
+        )
+
+        self.next_slide(notes="This method as we know it now arose from Joseph Raphson")
+
+        portrait_raphson = (
+            PortraitWithCaption(
+                "./image/raphson_church.jpg",
+                name="Joseph Raphson",
+                caption=r"{1960} \\ \tiny \textit{(No image available so here's the church he was probably baptized in lol)}",
+                image_size=3,
+                name_size=38,
+                caption_size=20,
+                name_color=YELLOW,
+            )
+            .center()
+            .shift(RIGHT * 2)
+        )
+
+        self.play(
+            LaggedStart(
+                AnimationGroup(
+                    FadeOut(newtons_messed_up[-1]),
+                    *(FadeOut(m) for m in newtons_messed_up[0:-2]),
+                ),
+                newtons_tex_seq.animate(run_time=2)
+                .scale(1 / 0.8)
+                .center()
+                .shift(LEFT * 2.5),
+                FadeIn(portrait_raphson, run_time=2),
+            )
+        )
+
+        self.next_slide(
+            notes="The general consesus is that Raphson's version is just better than Newton's hack, but essentially its the same thing just less obscured, which is while you'll read this as the Newton-Raphson Method often"
+        )
+
+        title_newton_raphson = (
+            TexText(
+                "Newton",
+                "-",
+                r"\textit{Raphson}",
+                " Method",
+                font_size=50,
+                t2c={r"\textit{Raphson}": YELLOW},
+            )
+            .move_to(title)
+            .shift(DOWN * 0.8)
+        )
+
+        title_cross = Cross(title_newton)
+
+        title_newton_copy = title_newton.copy()
+
+        self.play(
+            LaggedStart(
+                ShowCreation(title_cross),
+                Transform(title_newton_copy, title_newton_raphson),
+            ),
+            newtons_tex_seq.animate.restore(),
+            iterative_tex.animate.restore(),
+            FadeOut(portrait_raphson),
+        )
+
+        self.next_slide(
+            notes="I'll just be referring to it as just the raphson method just because it takes a little less space, sorry Raphson"
+        )
+
+        self.play(
+            FadeOut(title_newton_raphson),
+            FadeOut(title_newton_copy),
+            FadeOut(title_cross),
+        )
+
+        self.next_slide(
+            notes="The goal of Sutherland's thesis is a breakdown of this method farther than what either Newton or Raphson sought, the first step for this will be to switch from our iterative view into one of composition"
         )
 
         iterative_tex_fn = Tex(
@@ -308,10 +459,10 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.play(
             TransformMatchingTex(
-                newtons_tex_seq, newtons_tex_fn.move_to(newtons_tex_seq), run_time=0.8
-            )
+                newtons_tex_seq, newtons_tex_fn.move_to(newtons_tex_seq)
+            ),
+            TransformMatchingTex(iterative_tex, iterative_tex_fn),
         )
-        self.play(TransformMatchingTex(iterative_tex, iterative_tex_fn))
 
         # ====================================================
         #                Geometric Showcase
@@ -321,7 +472,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         self.add_to_canvas(formula=newtons_tex_fn)
 
         self.next_slide(
-            notes="I'll come back to exactly why iterative composition makes this clear, but first just a little geometric review of what newtons method is doing"
+            notes="I'll come back to exactly why iterative composition makes this clear, but first just a little geometric review of what newtons method is doing as the real number case offers a glimpse into the complexity later on"
         )
 
         (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()

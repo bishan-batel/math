@@ -13,4 +13,7 @@
 
 ## Introduction to Newtons Method
 - Introduce Newton & John Method 
-- Show the base algorithm, show how we will be treating it as if it were a function
+- Show the formula
+- Talk about Newton's original use case & Raphson getting mogged
+- Show iterative formula to recursive
+- Geometric view

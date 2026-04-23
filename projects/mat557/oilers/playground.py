@@ -215,6 +215,48 @@ class Playground(Slide):
                 )
             )
 
+        axes = ThreeDAxes()
+        axes.add_coordinate_labels()
+
+        self.graph = None
+
+        def refresh_graph():
+
+            new_graph = axes.get_graph(
+                lambda r, i: np.abs(fractal.polynomial()(i * 1j + r)) * 1e-2
+            )
+
+            if self.graph is None:
+                self.graph = new_graph
+                self.add(self.graph)
+            else:
+                self.graph.become(new_graph)
+
+            def color_by_arg(p):
+                u, v, _ = p
+                f_z = fractal.polynomial()(u + v * 1j)
+                angle = np.angle(f_z)  # -pi to pi
+                # Map angle to HSV color (hue: 0 to 1)
+
+                import colour
+
+                return np.array(
+                    colour.hsl2rgb(
+                        (
+                            (angle + PI) / (2 * PI),
+                            1.0,
+                            max(0.3, min(np.sqrt(np.abs(f_z)) * 2e-2, 1.0)),
+                        )
+                    )
+                )
+                # color = interpolate_color(RED, BLUE, (angle + PI) / (2 * PI))
+                # return np.array([color.get_red(), color.get_blue(), color.get_green()])
+
+            self.graph.set_color_by_rgb_func(color_by_arg)
+
+        # self.add(axes)
+        # refresh_graph()
+
         self.embed()
 
     def curr_roots(self) -> list[ComplexValueTracker]:
