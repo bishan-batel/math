@@ -1970,6 +1970,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         apply_to_roots(lambda z: 1j * z - 1j, run_time=0.5)
         apply_to_roots(lambda z: 1j * z - 1, run_time=0.5)
 
+        # =====================================================================
         self.next_slide(
             notes="The more formal way to say this is that our map has affine invariance"
         )
@@ -2031,9 +2032,11 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         self.play(FadeIn(newton_map_background), Write(newton_map_properties))
 
+        # =====================================================================
         self.next_slide("The affine in this part just refers to rotation and scale")
         self.play(Write(labels))
 
+        # =====================================================================
         self.next_slide(
             "What this means is when we study these maps, what is done in Sutherland's paper other sources I've found is that instead of accounting for roots within the entire complex plane, we can focus our view to roots within the unit disk"
         )
@@ -2055,6 +2058,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             dist_based=True,
         )
 
+        # =====================================================================
         self.next_slide(
             notes="You can apply this transform which just scales each root by the large absolute value of all of them which will bring them into the unit disk"
         )
@@ -2088,6 +2092,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             ),
         )
 
+        # =====================================================================
         self.next_slide(
             "Applying the transformation we can see that it does indeed lie on the disc and look similar"
         )
@@ -2102,6 +2107,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         apply_to_roots(lambda z: z / max_root_dist())
         self.play(ShowCreation(unit_disc))
 
+        # =====================================================================
         self.next_slide(
             notes="Stepping away from the pretty visuals, theres still a lot more prelimaries needed to formalize this even more (also needed later on in the paper)"
         )
@@ -2114,6 +2120,174 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 class NewtonPrelims(AbstractNewtonFractal):
     def construct(self):
         add_wait(self)
+
+        tex_kw = {
+            "isolate": [
+                "{n}",
+                "{N}",
+                "{z}",
+                "{a}",
+                "{b}",
+                "{c}",
+                "{d}",
+                "{r_i}",
+                "{r}",
+                "{p'}",
+                "{q'}",
+                "{f}",
+                "{f'}",
+                ")",
+                "(",
+                "=",
+                "\\cdots",
+            ],
+            "t2c": {
+                "{N}": YELLOW_B,
+                "{N'}": YELLOW_B,
+                "{p}": TEAL_B,
+                "{f}": GREEN_A,
+                "{f'}": GREEN_A,
+                "{p'}": TEAL_B,
+                "{z}": BLUE_A,
+                "{i}": TEAL_A,
+                "{a}": LIGHT_PINK,
+                "{b}": LIGHT_PINK,
+                "{c}": LIGHT_PINK,
+                "{d}": LIGHT_PINK,
+                "{r}": RED_A,
+                "{r_i}": RED_A,
+                "{n}": TEAL_A,
+            },
+        }
+
+        method_compare = VGroup(
+            TexText("Fixed Point Method"),
+            Tex(r"\longleftrightarrow"),
+            TexText(r"Newton's Method\,\,"),
+        ).arrange()
+
+        method_compare_arrow = method_compare[1].center().to_edge(UP).shift(DOWN)
+        method_compare_fixed = method_compare[0].next_to(method_compare_arrow, LEFT)
+        method_compare_newton = method_compare[2].next_to(method_compare_arrow, RIGHT)
+
+        self.play(Write(method_compare))
+
+        # =====================================================================
+        self.next_slide(
+            notes="At first it may seem like a weird connection, but really what newtons method for a polynomial is doing is creating a new function with fixed points at the roots of the polynomial"
+        )
+
+        fixed_point_method = Tex(
+            r"{f}( {f}( {f}( \cdots {f}({z})  ) ) ) = {z}", **tex_kw
+        ).next_to(method_compare_arrow, LEFT)
+
+        newton_method = Tex(
+            r"{N}({z}) = {z} - \frac{{p}({z})}{ {p'} ({z})} ", **tex_kw
+        ).next_to(method_compare_arrow, RIGHT)
+
+        self.play(
+            LaggedStart(
+                TransformMatchingTex(
+                    method_compare_fixed, fixed_point_method, path_arc=5 * DEG
+                ),
+                TransformMatchingTex(
+                    method_compare_newton, newton_method, path_arc=-5 * DEG
+                ),
+            )
+        )
+
+        # =====================================================================
+        self.next_slide(
+            note="What newtons method really is (by design) is making a new function with fixed points at the root of your polynomial, and then iterating with the fixed point method "
+        )
+
+        newton_method_fixed = (
+            VGroup(
+                Tex(r"{p}({z}) = 0", **tex_kw),
+                Tex(r"{N}({z}) = {z} - \frac{{p}({z})}{ {p'} ({z})} ", **tex_kw),
+                Tex(r"{N}({z}) = {z} - \frac{0}{ {p'} ({z})} ", **tex_kw),
+                Tex(r"{N}({z}) = {z}", **tex_kw),
+            )
+            .arrange(DOWN)
+            .next_to(newton_method, DOWN)
+        )
+
+        newton_method_fixed[2].move_to(newton_method_fixed[1])
+        newton_method_fixed[3].move_to(newton_method_fixed[1])
+
+        self.play(Write(newton_method_fixed[0]))
+
+        newton_fixed = newton_method_fixed[0].copy()
+        self.play(TransformMatchingTex(newton_fixed, newton_method_fixed[1]))
+        self.remove(newton_fixed)
+        self.add(newton_method_fixed[1])
+
+        self.play(TransformMatchingTex(newton_method_fixed[1], newton_method_fixed[2]))
+
+        self.play(TransformMatchingTex(newton_method_fixed[2], newton_method_fixed[3]))
+
+        # =====================================================================
+        self.next_slide(
+            notes="Understanding when the fixed point method works or doesn't work helps lead into more insight"
+        )
+
+        fixed_point_method_tmp = Tex(
+            r"{N}( {N}( {N}( \cdots {N}({z})  ) ) ) = {z}", **tex_kw
+        ).next_to(method_compare_arrow, LEFT)
+        self.play(
+            TransformMatchingTex(
+                fixed_point_method,
+                fixed_point_method_tmp,
+                key_map={
+                    "{f}": "{N}",
+                    "{z}": "{z}",
+                    "\\cdots": "\\cdots",
+                    "=": "=",
+                    "(": "(",
+                    ")": ")",
+                },
+            )
+        )
+        self.remove(fixed_point_method)
+        fixed_point_method = fixed_point_method_tmp
+        self.add(fixed_point_method)
+
+        # =====================================================================
+        self.next_slide(
+            notes="I could go really deep into this because this question is basically what Holomorphic Dynamics is which has been something I've been trying to learn in my free time - but I am not confident in my time or ability to present so I'll stick to the review from the paper"
+        )
+
+        fixed_point_method_tmp = (
+            Tex(r"\lim_{{n} \to \infty} {f}^{n}({z}) = {z}", **tex_kw)
+            .to_edge(UP)
+            .shift(DOWN)
+        )
+
+        self.play(
+            TransformMatchingTex(
+                fixed_point_method,
+                fixed_point_method_tmp,
+                key_map={
+                    "{N}": "{f}",
+                    "{z}": "{z}",
+                    "\\cdots": "\\cdots",
+                    "=": "=",
+                    "(": "(",
+                    ")": ")",
+                },
+                path_arc=90 * DEG,
+            ),
+            FadeOut(method_compare_arrow),
+            FadeOut(newton_method),
+            FadeOut(newton_method_fixed[0]),
+            FadeOut(newton_method_fixed[3]),
+            FadeOut(newton_method_fixed[3]),
+        )
+        self.remove(fixed_point_method)
+        fixed_point_method = fixed_point_method_tmp
+        self.add(fixed_point_method)
+
+        self.embed()
 
 
 class FixedPointMethod(Slide):

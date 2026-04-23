@@ -50,3 +50,8 @@
     - the formal description is that the map N(z) is affine invariant
 - What this means is to study these maps on polynomials, we can apply a transformation to bring all rots within the unit circle to make things easier 
 - This is done by just applying the map for each root, that is scaling them down by the length of the largest root. Note that this doesn't require you to know the roots already - as you can compute teh 'Cauchy Bound' of the polynomial through its coefficients to get the maximum magnitude a root of said polynomial could be
+
+## Newton Prelims
+
+### Fixed Point
+It might seem a bit off at first to jump into fixed point method of all things, but secretly the fixed point method has been what we've been looking at along along. The fixed point method is by far the simplest method as its just applying a function over and over to find when it equals itself. Newtons method (kind of by design) works by making a new function whose has fixed points at the roots of your polynomial
