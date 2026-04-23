@@ -54,4 +54,6 @@
 ## Newton Prelims
 
 ### Fixed Point
-It might seem a bit off at first to jump into fixed point method of all things, but secretly the fixed point method has been what we've been looking at along along. The fixed point method is by far the simplest method as its just applying a function over and over to find when it equals itself. Newtons method (kind of by design) works by making a new function whose has fixed points at the roots of your polynomial
+- It might seem a bit off at first to jump into fixed point method of all things, but secretly the fixed point method has been what we've been looking at along along. The fixed point method is by far the simplest method as its just applying a function over and over to find when it equals itself. Newtons method (kind of by design) works by making a new function whose has fixed points at the roots of your polynomial
+
+

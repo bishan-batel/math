@@ -7,6 +7,7 @@ from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
 from manimlib import *  # pyright:ignore
 
+from custom.complex import apply_complex_map_to_plane
 from custom.typings import *  # pyright:ignore
 from custom.portrait import *  # pyright:ignore
 from projects.mat557.oilers.common import *  # pyright:ignore
@@ -2117,7 +2118,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.embed()
 
 
-class NewtonPrelims(AbstractNewtonFractal):
+class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
     def construct(self):
         add_wait(self)
 
@@ -2125,6 +2126,7 @@ class NewtonPrelims(AbstractNewtonFractal):
             "isolate": [
                 "{n}",
                 "{N}",
+                "{N'}",
                 "{z}",
                 "{a}",
                 "{b}",
@@ -2133,21 +2135,36 @@ class NewtonPrelims(AbstractNewtonFractal):
                 "{r_i}",
                 "{r}",
                 "{p'}",
+                "{p''}",
                 "{q'}",
                 "{f}",
                 "{f'}",
+                "{m}",
+                r"\alpha",
                 ")",
                 "(",
                 "=",
+                "<",
+                ">",
+                "\\le",
+                "\\ge",
                 "\\cdots",
+                "{{1}}",
+                "{{2}}",
+                "{{0}}",
+                "{Attracting}",
+                "{Repelling}",
+                "{Superattracting}",
             ],
             "t2c": {
                 "{N}": YELLOW_B,
                 "{N'}": YELLOW_B,
+                "{N''}": YELLOW_B,
                 "{p}": TEAL_B,
                 "{f}": GREEN_A,
                 "{f'}": GREEN_A,
                 "{p'}": TEAL_B,
+                "{p''}": TEAL_C,
                 "{z}": BLUE_A,
                 "{i}": TEAL_A,
                 "{a}": LIGHT_PINK,
@@ -2157,6 +2174,11 @@ class NewtonPrelims(AbstractNewtonFractal):
                 "{r}": RED_A,
                 "{r_i}": RED_A,
                 "{n}": TEAL_A,
+                "{m}": LIGHT_PINK,
+                "\\alpha": RED_A,
+                "{Attracting}": BLUE_A,
+                "{Repelling}": RED_A,
+                "{Superattracting}": YELLOW_A,
             },
         }
 
@@ -2260,7 +2282,7 @@ class NewtonPrelims(AbstractNewtonFractal):
         fixed_point_method_tmp = (
             Tex(r"\lim_{{n} \to \infty} {f}^{n}({z}) = {z}", **tex_kw)
             .to_edge(UP)
-            .shift(DOWN)
+            .shift(DOWN * 0.5)
         )
 
         self.play(
@@ -2281,11 +2303,231 @@ class NewtonPrelims(AbstractNewtonFractal):
             FadeOut(newton_method),
             FadeOut(newton_method_fixed[0]),
             FadeOut(newton_method_fixed[3]),
-            FadeOut(newton_method_fixed[3]),
         )
         self.remove(fixed_point_method)
         fixed_point_method = fixed_point_method_tmp
         self.add(fixed_point_method)
+
+        # =====================================================================
+        self.next_slide(
+            notes="A property of the fixed point method is that for any given fixed point alpha, we say alpha is an attracting fixed point if the derivative of f at alpha has an absolute value less than one"
+        )
+
+        ex_attracting = Tex(r"{f}(\alpha) = \alpha", **tex_kw).next_to(
+            fixed_point_method, DOWN
+        )
+
+        self.play(
+            TransformMatchingTex(
+                fixed_point_method.copy(),
+                ex_attracting,
+                key_map={"{f}": "{f}", "{z}": "\\alpha"},
+            )
+        )
+
+        attracting_condition = Tex(r"| {f'}(\alpha) | < {{1}}", **tex_kw).next_to(
+            ex_attracting, DOWN
+        )
+
+        self.play(
+            TransformMatchingTex(
+                ex_attracting.copy(),
+                attracting_condition,
+                key_map={"{f}": "{f'}", "=": "<", "\\alpha": "\\alpha"},
+                matched_pairs=[
+                    (
+                        ex_attracting.get_parts_by_tex("\\alpha")[1],
+                        attracting_condition.get_part_by_tex("{{1}}"),
+                    ),
+                    (
+                        ex_attracting.get_parts_by_tex("\\alpha")[0],
+                        attracting_condition.get_part_by_tex("\\alpha"),
+                    ),
+                ],
+            )
+        )
+
+        # =====================================================================
+        self.next_slide(
+            notes="The intuition for why this is true is when you look at a transformation, what the derivative tells you at a point is how nearby points in the pre-image are going to scale and rotate in the image "
+        )
+
+        planes = (
+            VGroup(
+                ComplexPlane(
+                    width=3,
+                    height=3,
+                    x_range=(-2, 2, 1),
+                    y_range=(-2, 2, 1),
+                    faded_line_ratio=1,
+                ).set_opacity(0.5),
+                ComplexPlane(
+                    width=3,
+                    height=3,
+                    x_range=(-2, 2, 1),
+                    y_range=(-2, 2, 1),
+                    faded_line_ratio=1,
+                ).set_opacity(0.5),
+            )
+            .arrange(buff=LARGE_BUFF * 2)
+            .to_edge(DOWN)
+            .shift(UP * 0.5)
+        )
+
+        arrow = Arrow(planes[0], planes[1], path_arc=DEG * -90)
+        arrow.add(Tex(r"{z} \mapsto {z}^2", **tex_kw).next_to(arrow, UP))
+
+        self.play(Write(planes[0], run_time=1), Write(planes[1], run_time=1))
+
+        input_plane_scale = 2.0
+
+        input_plane = ComplexPlane(
+            width=3.0 / input_plane_scale,
+            height=3.0 / input_plane_scale,
+            x_range=(-2.0 / input_plane_scale, 2.0 / input_plane_scale, 1),
+            y_range=(-2.0 / input_plane_scale, 2.0 / input_plane_scale, 1),
+            faded_line_ratio=12,
+        ).move_to(planes[0])
+
+        self.play(Write(input_plane))
+
+        function = apply_complex_map_to_plane(
+            input_plane.copy().prepare_for_nonlinear_transform(),
+            planes[0],
+            lambda z: z**2,
+        ).move_to(planes[1])
+
+        self.play(
+            LaggedStart(
+                Write(arrow),
+                Transform(input_plane, function, run_time=2),
+            )
+        )
+
+        self.next_slide(
+            notes="If we zoom into near the point at zero (where the derivative is 0 or below 1) - we see that the grid lines / points become denser after the transformation, and at the point where the derivative is 0 they sort of collapse towards said point, which makes the point at 0 an attracting fixed point of z^2"
+        )
+
+        self.frame.save_state()
+
+        self.play(
+            self.frame.animate(run_time=3)
+            .set_width(planes[1].get_width() * 0.5)
+            .move_to(planes[1])
+        )
+
+        self.next_slide(
+            notes="Zooming back out, if the derivative at a fixed point has an absolute value less than one we call it attracting, and if it is greater than 1 it is repelling. If the derivative is exactly zero then that fixed point is super-attracting, meaning points near it shrink into it *alot*"
+        )
+        self.play(
+            self.frame.animate.restore(),
+            FadeOut(planes[0]),
+            FadeOut(planes[1]),
+            FadeOut(arrow),
+            FadeOut(function),
+            FadeOut(input_plane),
+        )
+
+        fixed_point_types = (
+            Tex(
+                r"""
+            |{f'}(\alpha) | < 1  &\Longrightarrow \text{\emph{Attracting}}  \\
+            |{f'}(\alpha) | > 1  &\Longrightarrow \text{\emph{Repelling}} \\
+            |{f'}(\alpha) | = 0  &\Longrightarrow \text{\emph{Superattracting}} 
+            """,
+                **tex_kw,
+            )
+            .next_to(ex_attracting, DOWN)
+            .shift(RIGHT * 0.5)
+        )
+
+        self.play(
+            TransformMatchingTex(attracting_condition.copy(), fixed_point_types),
+            FadeOut(attracting_condition),
+        )
+
+        self.next_slide(notes="Looking back at newtons method, ")
+
+        newton_deriv = (
+            VGroup(
+                newton_method.copy(),
+                Tex(
+                    r"{N'}({z}) =  1 - \frac{ {p'}({z}){p'}({z}) - {p}({z}){p''}({z}) }{ {p'}({z})^2 } ",
+                    **tex_kw,
+                ),
+                Tex(
+                    r"{N'}({z}) =  \frac{{p'}({z})^2  - {p'}({z})^2 + {p}({z}){p''}({z}) }{ {p'}({z})^2 } ",
+                    **tex_kw,
+                ),
+                Tex(
+                    r"{N'}({z}) =  \frac{ {p}({z}) {p''}({z}) } { {p'}({z})^2 }",
+                    **tex_kw,
+                ),
+                Tex(
+                    r"{N'}(\alpha) =  \frac{{m} - 1}{{m}}",
+                    **tex_kw,
+                ),
+                Tex(
+                    r"{N'}(\infinity) =  \frac{{m} - 1}{{m}}",
+                    **tex_kw,
+                ),
+            )
+            .center()
+            .arrange(DOWN)
+        )
+
+        newton_deriv[0].center().shift(UP)
+        newton_deriv[1].next_to(newton_deriv[0], DOWN)
+        newton_deriv[2].move_to(newton_deriv[1])
+        newton_deriv[3].move_to(newton_deriv[1])
+        newton_deriv[4].next_to(newton_deriv[1], DOWN)
+
+        self.play(
+            fixed_point_types.animate.scale(0.8)
+            .to_corner(UL)
+            .shift(LEFT * 0.2 + UP * 0.2),
+            FadeOut(fixed_point_method),
+            FadeOut(ex_attracting),
+            Write(newton_deriv[0]),
+        )
+
+        self.next_slide(notes="Taking the derivative and simplifying")
+
+        self.play(TransformMatchingTex(newton_deriv[0].copy(), newton_deriv[1]))
+
+        self.play(
+            TransformMatchingTex(newton_deriv[1], newton_deriv[2], path_arc=-45 * DEG)
+        )
+        self.play(
+            TransformMatchingTex(newton_deriv[2], newton_deriv[3], path_arc=45 * DEG)
+        )
+
+        self.next_slide(
+            notes="What this expression tells us is that under a newton map, the zeros of the polynomial are also zeroes of the derivative of the newton map - and because they are also fixed points - every root will be a *superattracting fixed point*"
+        )
+
+        highlight = SurroundingRectangle(
+            newton_deriv[3].get_part_by_tex("{p}({z})")
+        ).shift(LEFT * 0.27)
+        self.play(ShowCreation(highlight))
+
+        self.next_slide(
+            notes="This expression does show us another issue though, the inflextion points of our polynomial also becomes zeros of our newtons map derivative. This isn't immediately a bad thing, because if said inflection point of our polynomial isn't a fixed point of the newton map - then it won't be attracted. Even if we have a polynomial with an inflextion point at a fixed point of newtons map, by necessity that means its already a root of the polynomial."
+        )
+
+        numer_highlight = SurroundingRectangle(
+            newton_deriv[3].get_part_by_tex("{p''}({z})", -1)
+        )
+        self.play(ReplacementTransform(highlight, numer_highlight))
+
+        self.next_slide(
+            notes="This understanding of the fixed point method also gives us a very nice argument for why newtons method converges slower when dealing with roots with a multiplicity greater than 1"
+        )
+
+        self.play(
+            Uncreate(numer_highlight),
+            TransformMatchingTex(newton_deriv[3].copy(), newton_deriv[4]),
+        )
 
         self.embed()
 
