@@ -40,6 +40,13 @@ def add_wait(slide: Slide):
     slide.leave_progress_bars = True
     if ADD_WAIT_TIME and slide.window is not None:
         slide.wait_time_between_slides = 2 if ADD_WAIT_TIME else 0
+        prev = slide.next_slide
+
+    def next_slide(notes="", **kwargs):
+        print("Slide Notes: ", notes)
+        return prev(notes=notes, **kwargs)
+
+    slide.next_slide = next_slide
 
 
 class FirstTitle(Slide):
@@ -558,7 +565,9 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         What happens if you move the start point?
         """
 
-        self.next_slide()
+        self.next_slide(
+            notes="A peculiar question brought up partially by Arthur Cayley in 1879 is how does the seed value determine its trajectory, or 'orbit' in more modern terms"
+        )
 
         x0_label[0].become(Tex("x_0", "=", t2c={"x_0": YELLOW}, alignment=""))
         x0_label.arrange(RIGHT).to_corner(UL)
@@ -603,7 +612,9 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.play(ShowCreation(limiting_path), FadeIn(limit_point))
 
-        self.next_slide()
+        self.next_slide(
+            notes="Showing an arrow to track the path of our seed under iteration"
+        )
 
         def sv(z, run_time=1):
             self.play(x0.animate(run_time=run_time).set_value(z))
@@ -677,6 +688,8 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
                 "x_n",
                 "z_n",
                 "z_{n+1}",
+                "z",
+                "N",
             ],
             "t2c": {
                 "x_{n+1}": BLUE_B,
@@ -684,6 +697,8 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
                 "x": BLUE_B,
                 "z_{n+1}": BLUE_B,
                 "z_n": BLUE_B,
+                "z": BLUE_B,
+                "N": YELLOW,
             },
         }
 
@@ -837,7 +852,75 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             ),
         )
 
-        self.next_slide()
+        self.next_slide(
+            notes="Which means we change our domain from the real numbers to itself to a map N between the comple numbers and themselves"
+        )
+
+        newton_map = Tex(r"N(z): \mathbb{R} \to \mathbb{R}", **tex_kw)
+
+        self.play(
+            FadeOut(thereom_of_alg),
+            Transform(root_poly, newton_map),
+        )
+
+        self.add(newton_map)
+        self.remove(root_poly)
+
+        newton_map_complex = Tex(
+            r"N(z) \, : \,", r"\mathbb{C} \to \mathbb{C}", **tex_kw
+        ).shift(LEFT * 0.3)
+        newton_map_riemann = Tex(
+            r"N(z) \, : \,", r"\mathbb{\hat C} \to \mathbb{\hat C}", **tex_kw
+        ).move_to(newton_map_complex)
+
+        self.play(TransformMatchingTex(newton_map, newton_map_complex))
+        self.remove(newton_map)
+
+        self.next_slide(
+            notes="Well technically, we extend our view onto the Rieman sphere"
+        )
+
+        brace = BraceText(
+            newton_map_complex.get_part_by_tex(r"\mathbb{C} \to \mathbb{C}"),
+            "Riemann Sphere",
+        )
+
+        self.play(
+            LaggedStart(
+                TransformMatchingTex(newton_map_complex, newton_map_riemann),
+                Write(brace),
+            )
+        )
+        self.remove(newton_map_complex)
+
+        self.next_slide(
+            "Where the riemann sphere is just the complex numbers made *compact* by adjoining the point at infinity"
+        )
+
+        rieman_sphere = (
+            VGroup(
+                Tex(r"\mathbb{\hat C} = \mathbb{C} \cup \left\{ \infty \right\} "),
+                TexText(
+                    r"$\mathbb{\hat C}$ is \textit{compact}",
+                    isolate=["compact"],
+                    t2c={"compact": YELLOW},
+                ),
+            )
+            .arrange(DOWN)
+            .next_to(newton_map_complex, DOWN)
+            .shift(RIGHT * 0.4)
+        )
+
+        self.play(
+            LaggedStart(
+                FadeOut(brace),
+                newton_map_riemann.animate.shift(UP * 0.4),
+                Write(rieman_sphere),
+            )
+        )
+
+        self.next_slide(notes="Now")
+
         self.play(*(FadeOut(m) for m in self.mobjects))
 
 
@@ -1102,13 +1185,22 @@ class NewtonComplex(ThreeDSlide):
             notes="If we move around our z value in the complex plane, we can see this 'boundry chaos' seems to persist even there"
         )
 
-        def rotate_z0(rotations=20, rotation_time=8.0, rotation_radius=2):
-            for i in range(rotations):
+        def rotate_z0(rotations=64, rotation_time=8.0, rotation_radius=2):
+            step_time = rotation_time / float(rotations)
+            self.play(
+                z0.animate(
+                    run_time=max(0.1, 1 * np.abs(rotation_radius - z0.get_value()))
+                ).set_value(rotation_radius)
+            )
+
+            self.wait(0.5)
+
+            for i in range(0, rotations):
                 angle = (float(i + 1) / rotations) * 360 * DEG
                 self.play(
-                    z0.animate(
-                        run_time=(rotation_time / float(rotations)), rate_func=linear
-                    ).set_value(rotation_radius * np.exp(1j * angle))
+                    z0.animate(run_time=step_time, rate_func=linear).set_value(
+                        rotation_radius * np.exp(1j * angle)
+                    )
                 )
 
         rotate_z0()
@@ -1310,9 +1402,9 @@ class NewtonComplex(ThreeDSlide):
         self.add(fractal)
         self.play(
             FadeOut(dots),
-            FadeOut(roots),
+            *(FadeOut(r) for r in roots),
             plane.animate.set_opacity(0.15),
-            *(dot.animate.set_opacity(0.5) for dot in roots),
+            # *(dot.animate.set_opacity(0.5) for dot in roots),
             fractal_opacity.animate.set_value(1.0),
         )
         self.embed()

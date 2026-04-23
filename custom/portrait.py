@@ -6,7 +6,7 @@ class PortraitWithCaption(Group):
         self,
         image_path,
         name="Name",
-        caption="",
+        caption: str | None = None,
         image_size=3,
         name_size=24,
         caption_size=14,
@@ -23,10 +23,14 @@ class PortraitWithCaption(Group):
         #     self.image, color=outline_color, buff=MED_SMALL_BUFF
         # )
 
-        self.name_text = Text(name, font_size=name_size)
+        self.name_text = TexText(name, font_size=name_size)
         self.name_text.set_color(name_color)
 
-        self.caption_text = Text(caption, font_size=caption_size)
+        self.caption_text = (
+            TexText(caption, font_size=caption_size)
+            if caption is not None
+            else VMobject()
+        )
         self.caption_text.set_color(caption_color)
 
         self.text_group = VGroup(self.name_text, self.caption_text)

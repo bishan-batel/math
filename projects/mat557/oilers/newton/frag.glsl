@@ -256,7 +256,6 @@ struct Polynomial {
     uint degree;
 };
 
-// void Polynomial_gen_coefs_from_roots(in vec2 roots[MAX_ROOTS], in uint degree, out vec2 coefs[MAX_COEFS]) {
 void Polynomial_gen_coefs_from_roots(inout Polynomial polynomial) {
     for (uint i = 0u; i < MAX_COEFS; i++) polynomial.coefs[i] = vec2(0.0);
     polynomial.coefs[0] = vec2(1.0, 0.0); // Start with P(z) = 1
