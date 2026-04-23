@@ -637,7 +637,7 @@ void fragment_seedspace(out vec4 color, in vec2 pixel_z) {
         float radius = u_julia_highlight;
 
         const uint NUM_SAMPLES = 4u;
-        vec2[NUM_SAMPLES] z = vec2[NUM_SAMPLES](
+        vec2[NUM_SAMPLES] zs = vec2[NUM_SAMPLES](
                 pixel_z + vec2(radius, 0.0),
                 pixel_z + vec2(-radius, 0.0),
                 pixel_z + vec2(0.0, radius),
@@ -645,19 +645,20 @@ void fragment_seedspace(out vec4 color, in vec2 pixel_z) {
             ), zp, zpp;
 
         for (uint i = 0u; i < NUM_SAMPLES; i++) {
-            iteration_setup(polynomial, z[i], z[i], zp[i], zpp[i], u_mode);
+            iteration_setup(polynomial, zs[i], zs[i], zp[i], zpp[i], u_mode);
         }
 
         float max_dist = 0.0;
 
-        for (uint i = 0u; i < NUM_SAMPLES; i++) {
-            for (uint j = 0u; j < u_max_iterations; j++) {
-                single_iteration(polynomial, z[i], zp[i], zpp[i], u_mode);
+        for (uint j = 0u; j < 20u; j++) {
+            for (uint i = 0u; i < NUM_SAMPLES; i++) {
+                single_iteration(polynomial, zs[i], zp[i], zpp[i], u_mode);
             }
         }
 
         for (uint i = 0u; i < NUM_SAMPLES; i++) {
-            max_dist = max(max_dist, distance(z[i], z[(i + 1u) % NUM_SAMPLES]));
+            max_dist = max(max_dist, distance(zs[i], zs[(i + 1u) % NUM_SAMPLES]));
+            max_dist = max(max_dist, distance(z, zs[i]));
         }
 
         color *= 1.0 * smoothstep(0., 0.1, max_dist);

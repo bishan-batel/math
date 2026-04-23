@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
 from manimlib import *  # pyright:ignore
-from manimlib.typing import *
-from scipy.optimize import newton, newton_krylov  # pyright:ignore
 
 from custom.typings import *  # pyright:ignore
 from custom.portrait import *  # pyright:ignore
@@ -38,9 +36,11 @@ def add_wait(slide: Slide):
     slide.on_resize = on_resize
 
     slide.leave_progress_bars = True
+
     if ADD_WAIT_TIME and slide.window is not None:
         slide.wait_time_between_slides = 2 if ADD_WAIT_TIME else 0
-        prev = slide.next_slide
+
+    prev = slide.next_slide
 
     def next_slide(notes="", **kwargs):
         print("Slide Notes: ", notes)
@@ -100,6 +100,7 @@ class FirstTitle(Slide):
             author.animate.set_opacity(1),
         )
 
+        # =====================================================================
         self.next_slide(notes="A little goal layout")
 
         goals_title = Title("Goals").to_edge(UP)
@@ -119,16 +120,19 @@ class FirstTitle(Slide):
 
         curr_goal = -1
 
+        # =====================================================================
         self.next_slide(notes="Some slight review of what Newtons is")
         curr_goal += 1
         self.play(Write(goals[curr_goal]))
 
         # newtons method in CC
+        # =====================================================================
         self.next_slide(notes="How does newtons method extend to the complex numbers?")
         curr_goal += 1
         self.play(Write(goals[curr_goal]))
 
         # newtons method fails
+        # =====================================================================
         self.next_slide(notes="When can we be sure newtons method converges?")
         curr_goal += 1
         self.play(Write(goals[curr_goal]))
@@ -172,6 +176,7 @@ class FirstTitle(Slide):
         # self.play(Swap(dot1, dot2))
 
         # newtons method fractals
+        # =====================================================================
         # self.next_slide()
 
         # curr_goal += 1
@@ -183,6 +188,7 @@ class FirstTitle(Slide):
         #     Write(goals[curr_goal]),
         # )
 
+        # =====================================================================
         self.next_slide()
         self.wipe(self.mobjects_without_canvas)
 
@@ -232,6 +238,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             Arrow(portrait_method[1], portrait_method[0], path_arc=-PI / 6)
         )
 
+        # =====================================================================
         self.next_slide(
             notes="""This root-finding procedure was made by Isaac newton and John Method ()"""
         )
@@ -278,6 +285,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         brace_question = Tex("x=?", **tex_kw).next_to(brace, DOWN)
         self.play(Write(brace), Write(brace_question))
 
+        # =====================================================================
         self.next_slide(notes="Newtons method is the following sequence")
 
         self.play(FadeOut(brace), FadeOut(brace_question))
@@ -291,6 +299,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             TransformMatchingTex(tex_func, newtons_tex_seq, key_map={"x": "x_{n+1}"})
         )
 
+        # =====================================================================
         self.next_slide(
             notes="Where we take some initial value x0 and iterate this sequence"
         )
@@ -307,6 +316,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             )
         )
 
+        # =====================================================================
         self.next_slide(
             notes="A little side-note however, this method that everybody uses is *not* the method that Newton used"
         )
@@ -329,6 +339,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             FadeIn(analysi_newton),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="This method looks pretty different than the one normally taught and used cause newton kinda made it feel really complicated"
         )
@@ -373,6 +384,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             )
         )
 
+        # =====================================================================
         self.next_slide(
             notes="After some amount of steps, he would settle on a root that was good enough for his needs - and this was the extent of Newton's involvement"
         )
@@ -383,6 +395,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             )
         )
 
+        # =====================================================================
         self.next_slide(notes="This method as we know it now arose from Joseph Raphson")
 
         portrait_raphson = (
@@ -413,6 +426,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             )
         )
 
+        # =====================================================================
         self.next_slide(
             notes="The general consesus is that Raphson's version is just better than Newton's hack, but essentially its the same thing just less obscured, which is while you'll read this as the Newton-Raphson Method often"
         )
@@ -444,6 +458,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             FadeOut(portrait_raphson),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="I'll just be referring to it as just the raphson method just because it takes a little less space, sorry Raphson"
         )
@@ -454,6 +469,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             FadeOut(title_cross),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="The goal of Sutherland's thesis is a breakdown of this method farther than what either Newton or Raphson sought, the first step for this will be to switch from our iterative view into one of composition"
         )
@@ -478,6 +494,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         self.remove_from_canvas("title")
         self.add_to_canvas(formula=newtons_tex_fn)
 
+        # =====================================================================
         self.next_slide(
             notes="I'll come back to exactly why iterative composition makes this clear, but first just a little geometric review of what newtons method is doing as the real number case offers a glimpse into the complexity later on"
         )
@@ -494,6 +511,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.play(FadeIn(func_graph))
 
+        # =====================================================================
         self.next_slide(note="We start with some initial guess x0")
 
         x0.set_value(-1)
@@ -531,10 +549,12 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.play(FadeIn(x0_marker), Write(x0_label))
 
+        # =====================================================================
         self.next_slide(notes="We apply the function")
 
         perform_one_step()
 
+        # =====================================================================
         self.next_slide(
             notes="And we keep applying the function until we make it to a point",
             loop=False,
@@ -543,6 +563,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         for _ in range(4):
             perform_one_step(0.5)
 
+        # =====================================================================
         self.next_slide(notes="And with only 3 iterations, its pretty good")
 
         ex_root = Tex(
@@ -565,6 +586,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         What happens if you move the start point?
         """
 
+        # =====================================================================
         self.next_slide(
             notes="A peculiar question brought up partially by Arthur Cayley in 1879 is how does the seed value determine its trajectory, or 'orbit' in more modern terms"
         )
@@ -612,6 +634,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         self.play(ShowCreation(limiting_path), FadeIn(limit_point))
 
+        # =====================================================================
         self.next_slide(
             notes="Showing an arrow to track the path of our seed under iteration"
         )
@@ -619,6 +642,7 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         def sv(z, run_time=1):
             self.play(x0.animate(run_time=run_time).set_value(z))
 
+        # =====================================================================
         self.next_slide(
             loop=False,
             notes="A thing we can notice is that if we start near a root, it tends to attract to that root",
@@ -628,42 +652,51 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             sv(r)
             self.wait(1)
 
+        # =====================================================================
         self.next_slide(
             notes="Complexity arises though if we want to understand what happens when our limiting root changes as we vary x0"
         )
 
         sv(-0.5)
 
+        # =====================================================================
         self.next_slide(
             notes="This here pretty quickly converges to this middle root, however if we slightly nudge our starting value by just a tenth"
         )
 
         sv(-0.6)
 
+        # =====================================================================
         self.next_slide(
             notes="The method kinda goes erratic until it flings itself far enough to converge to the leftmost root, we can push this method just a 0.01, a hundreth  to the right and it will converge to the same root but do so significantly quicker"
         )
 
         sv(-0.59)
 
+        # =====================================================================
         self.next_slide(
             notes="If we push x0 closer however back to -0.5 - we can see that in between those values it actually can go to the last root somehow, but during the transition of limiting points there seems to be a huge decrease of effiency / convergence, and even here we can see that newtons method will actually bounce around a little bit first"
         )
 
         sv(-0.58)
 
+        # =====================================================================
         self.next_slide(
             notes="And again we can notice that at this sort of boundry between the two limits the function will indeed converge, but do so everso erraticly"
         )
 
         sv(-0.5781)
 
+        # =====================================================================
         self.next_slide()
 
         sv(-0.5780)
 
+        # =====================================================================
         self.next_slide()
-        self.play(*(FadeOut(m) for m in self.mobjects))
+
+        self.remove_from_canvas("formula")
+        self.play(*(FadeOut(m.suspend_updating()) for m in self.mobjects))
 
 
 class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
@@ -709,6 +742,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
 
         self.play(Write(newtons_tex))
 
+        # =====================================================================
         self.next_slide(
             notes="While newtons method works for any continuous/differentiable function, we are going to focus our view to polynomials"
         )
@@ -729,12 +763,14 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             Write(generic_polynomial),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="Focusing our attention to cubics, although most of what im going to say generalizes to any polnomial",
         )
 
         self.play(FadeOut(newtons_tex_poly), generic_polynomial.animate.center())
 
+        # =====================================================================
         self.next_slide(
             notes="While we normally deal with polyomials in terms of coefficients, because we are specifically interested in the roots of the polynomial it makes more sense to talk about the factored form of the polynomial"
         )
@@ -767,6 +803,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             ),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="The factored form has a lot of advantages that makes it nicer to work with, like how it lets us cut down from 4 coefficient variables to 3 roots"
         )
@@ -806,6 +843,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             ),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="Another nice thing is that the factored form has this sort of symettry between each root, meaning each one is swappable"
         )
@@ -825,6 +863,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         swap_roots(3, 1)
         swap_roots(3, 2)
 
+        # =====================================================================
         self.next_slide(
             notes="Using newtons method on this polynomial means trying to actually find what these roots are for the function, and while before I talked about specifically the real value case - as you all know because of the Fundamental thereom of calculus - you can always find these roots if you allow them to take complex values"
         )
@@ -852,6 +891,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             ),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="Which means we change our domain from the real numbers to itself to a map N between the comple numbers and themselves"
         )
@@ -876,6 +916,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         self.play(TransformMatchingTex(newton_map, newton_map_complex))
         self.remove(newton_map)
 
+        # =====================================================================
         self.next_slide(
             notes="Well technically, we extend our view onto the Rieman sphere"
         )
@@ -893,6 +934,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         )
         self.remove(newton_map_complex)
 
+        # =====================================================================
         self.next_slide(
             "Where the riemann sphere is just the complex numbers made *compact* by adjoining the point at infinity"
         )
@@ -919,7 +961,8 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
             )
         )
 
-        self.next_slide(notes="Now")
+        # =====================================================================
+        self.next_slide(notes="to complex plane")
 
         self.play(*(FadeOut(m) for m in self.mobjects))
 
@@ -1083,6 +1126,7 @@ class NewtonComplex(ThreeDSlide):
 
         roots_tails = VGroup(*(TracingTail(dot, color=dot.fill_color) for dot in roots))
 
+        # =====================================================================
         self.next_slide(
             notes="I will also be adding this little limit point and root points so you know which root is being converged to, and what the roots are"
         )
@@ -1090,6 +1134,7 @@ class NewtonComplex(ThreeDSlide):
         self.add(roots_tails)
         self.play(FadeIn(roots))
 
+        # =====================================================================
         self.next_slide(
             notes="Something also I want to note is that we are going to be looking at the same cubic as before, except now as a function from C to C"
         )
@@ -1105,6 +1150,7 @@ class NewtonComplex(ThreeDSlide):
             self.frame.animate.rotate(90 * DEG, axis=RIGHT),
         )
 
+        # =====================================================================
         self.next_slide(notes="Returning back, we can see what z0 does")
 
         self.play(
@@ -1113,6 +1159,7 @@ class NewtonComplex(ThreeDSlide):
             FadeOut(real_graph),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="Like before in the real number case, we start with some initial 'seed value' z0"
         )
@@ -1121,18 +1168,21 @@ class NewtonComplex(ThreeDSlide):
         self.play(FadeIn(z0_marker), FadeIn(z0_label))
         self.add(z0_marker_trail)
 
+        # =====================================================================
         self.next_slide(notes="And we can move around and what not, ")
 
         self.play(z0.animate.set_value(-0.5))
         self.play(z0.animate.set_value(0.3))
         self.play(z0.animate.set_value(-2))
 
+        # =====================================================================
         self.next_slide(
             notes="Im going to put it here since we know from before its just going to go to tis leftmost root"
         )
 
         self.play(z0.animate.set_value(-5), CircleIndicate(roots[0]))
 
+        # =====================================================================
         self.next_slide(
             notes="While in the real number graph case we have this nice visual intuition with tangent lines and zeroes - we can still play the same game with complex numbers and take a step"
         )
@@ -1142,12 +1192,14 @@ class NewtonComplex(ThreeDSlide):
         l_path = make_path()
         self.play(Write(l_path))
 
+        # =====================================================================
         self.next_slide(notes="Then another one")
         self.path_iterations.set_value(2)
 
         l_path2 = make_path()
         self.play(Transform(l_path, l_path2))
 
+        # =====================================================================
         self.next_slide(notes="And so on and so on")
 
         self.remove(l_path)
@@ -1155,12 +1207,14 @@ class NewtonComplex(ThreeDSlide):
         self.add(path)
         self.play(self.path_iterations.animate.set_value(10))
 
+        # =====================================================================
         self.next_slide(
             notes="And I will also make the root that z0 will eventually hit glow"
         )
 
         self.play(FadeIn(limit_point))
 
+        # =====================================================================
         self.next_slide(
             notes="We can play this same game now except we can see what this will do for an complex starting point"
         )
@@ -1169,6 +1223,7 @@ class NewtonComplex(ThreeDSlide):
 
         self.play(z0.animate.set_value(-1))
 
+        # =====================================================================
         self.next_slide(
             notes="And we can see this strange slower convergence happens on the boundry again"
         )
@@ -1181,6 +1236,7 @@ class NewtonComplex(ThreeDSlide):
         sv(-0.5781)
         sv(-0.5780)
 
+        # =====================================================================
         self.next_slide(
             notes="If we move around our z value in the complex plane, we can see this 'boundry chaos' seems to persist even there"
         )
@@ -1206,6 +1262,7 @@ class NewtonComplex(ThreeDSlide):
         rotate_z0()
 
         self.wait(1)
+        # =====================================================================
         self.next_slide(
             notes="Now I'm going to do the same thing with a polynomial that does have complex roots"
         )
@@ -1218,6 +1275,7 @@ class NewtonComplex(ThreeDSlide):
         )
         self.wait(1)
 
+        # =====================================================================
         self.next_slide(
             notes="And notice that even with a different polynomial this behavior continues"
         )
@@ -1225,6 +1283,7 @@ class NewtonComplex(ThreeDSlide):
 
         self.wait(1)
 
+        # =====================================================================
         self.next_slide(
             notes="This is where the cool stuff begins, lets see what a whole array of seed values will do, lets spread a bunch of different values across the plane"
         )
@@ -1293,10 +1352,14 @@ class NewtonComplex(ThreeDSlide):
 
         self.play(ShowCreation(dots))
 
+        # =====================================================================
         self.next_slide(notes="We can see how all the points step forward")
 
         take_step()
 
+        self.embed()
+
+        # =====================================================================
         self.next_slide(
             notes="As we keep iterating, notice how (like as we saw before) points near each root pretty quickly getting nestled in, while some points bounce around and get flung out really far before converging"
         )
@@ -1304,6 +1367,7 @@ class NewtonComplex(ThreeDSlide):
         for _ in range(5):
             take_step()
 
+        # =====================================================================
         self.next_slide(
             notes="If we just keep iterating, it seems like most points do hit the roots"
         )
@@ -1311,6 +1375,7 @@ class NewtonComplex(ThreeDSlide):
         for _ in range(10):
             take_step(0.5)
 
+        # =====================================================================
         self.next_slide(
             notes="We can color each starting point by what root it converged into"
         )
@@ -1327,12 +1392,14 @@ class NewtonComplex(ThreeDSlide):
 
         iteration_color_dots()
 
+        # =====================================================================
         self.next_slide(
             notes="If we sort of 'unwind' all of these points back to there starting positions"
         )
 
         unwind()
 
+        # =====================================================================
         self.next_slide(
             notes="Something weird shappens at the boundry, the third color seems to be butting in"
         )
@@ -1343,9 +1410,11 @@ class NewtonComplex(ThreeDSlide):
         self.wait(1)
         self.play(self.frame.animate.shift(UP + LEFT * 3))
 
+        # =====================================================================
         self.next_slide(notes="Zooming out however")
         self.play(self.frame.animate.restore())
 
+        # =====================================================================
         self.next_slide(
             notes="This isn't really enough resolution to get the full picture, so lets double the number"
         )
@@ -1357,16 +1426,19 @@ class NewtonComplex(ThreeDSlide):
             dots.animate.set_points(points2coords(points_history[-1])).set_color(WHITE),
         )
 
+        # =====================================================================
         self.next_slide(notes="We then play this same game of iteration")
 
         for _ in range(10):
             take_step(0.5)
 
+        # =====================================================================
         self.next_slide(notes="We color and then unwind")
 
         iteration_color_dots()
         unwind()
 
+        # =====================================================================
         self.next_slide(notes="Even this doesnt seem to be enough resolution")
 
         points_history = [self.make_points(80)]
@@ -1383,11 +1455,13 @@ class NewtonComplex(ThreeDSlide):
         for _ in range(10):
             take_step(0.1, False)
 
+        # =====================================================================
         self.next_slide(notes="We unwind and color again")
 
         iteration_color_dots(0.5)
         unwind(0.25)
 
+        # =====================================================================
         self.next_slide(
             notes="This shape at the boundries seems to contain more and more of these blobs, but to get a full appreciation - we need to go to an even higher resolution - if you kepts increasing and increasing the amount of points you sample, doing this game for every single pixel on the screen, this is what you would get"
         )
@@ -1436,7 +1510,12 @@ class NewtonComplex(ThreeDSlide):
 
 
 class AbstractNewtonFractal(Slide):
-    roots = [ComplexValueTracker(r) for r in SIMPLE_POLY_EXAMPLES[2].roots()]
+    roots = [
+        ComplexValueTracker(np.exp(1j * i / float(FractalNewton.MAX_DEGREE)))
+        for i in range(FractalNewton.MAX_DEGREE)
+    ]
+
+    degree = 3
 
     plane: ComplexPlane
     fractal: FractalNewton
@@ -1446,18 +1525,26 @@ class AbstractNewtonFractal(Slide):
     path_iterations: int = 10
     show_path = True
 
+    def curr_roots(self):
+        return self.roots[0 : (self.degree - 1)]
+
     def f(self, z: complex):
-        return Polynomial.fromroots([r.get_value() for r in self.roots])(z)
+        return Polynomial.fromroots([r.get_value() for r in self.curr_roots()])(z)
 
     def df(self, z: complex):
-        return Polynomial.fromroots([r.get_value() for r in self.roots]).deriv()(z)
+        return Polynomial.fromroots([r.get_value() for r in self.curr_roots()]).deriv()(
+            z
+        )
 
     def newtons(self, z: complex):
         return z - self.f(z) / self.df(z)
 
     def make_fractal(self) -> FractalNewton:
         self.fractal = FractalNewton([r.get_value() for r in self.roots])
-        self.fractal.f_always.set_roots(lambda: [r.get_value() for r in self.roots])
+        self.fractal.f_always.set_roots(
+            lambda: [r.get_value() for r in self.roots],
+            lambda: self.degree,
+        )
         self.fractal.set_z_index(-1)
         self.fractal.pin(self)
         return self.fractal
@@ -1546,30 +1633,35 @@ class AbstractNewtonFractal(Slide):
                 radius=radius,
             )
             dot.f_always.move_to(
-                lambda: self.plane.n2p(complex(self.roots[i].get_value()))
+                lambda: (
+                    self.plane.n2p(complex(self.roots[i].get_value()))
+                    if i < self.degree
+                    else self.plane.n2p(500j + 1j)
+                )
             )
+
             self.root_trails.add(
                 TracingTail(
                     dot,
                     stroke_color=dot.fill_color,
                 )
             )
+            self.root_trails[-1].f_always.set_opacity(
+                lambda: 1 if i < self.degree else 0
+            )
             return dot
 
         self.root_trails = Group()
-        self.root_dots = VGroup(*(make_dot(i) for i in range(3)))
+        self.root_dots = VGroup(*(make_dot(i) for i in range(len(self.roots))))
         self.root_dots.set_z_index(5)
         return self.root_dots, self.root_trails
-
-    def construct(self):
-        add_wait(self)
 
 
 class NewtonFractalIntroduction(AbstractNewtonFractal):
     root_opacities = [ValueTracker(1) for _ in range(3)]
 
     def construct(self):
-        super().construct()
+        add_wait(self)
 
         plane = self.make_plane()
         fractal = self.make_fractal()
@@ -1580,34 +1672,47 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             lambda: [float(r.get_value()) for r in self.root_opacities],
         )
 
+        for v, root in zip(SIMPLE_POLY_EXAMPLES[2].roots(), self.roots):
+            root.set_value(v)
+
         self.add(plane, fractal)
 
         self.frame.save_state()
-        self.next_slide(notes="amazing")
+
+        # =====================================================================
+        self.next_slide(
+            notes="To be honest, most of me working on this presentation has been fiddling and playing round with this family of fractals because they look really cool"
+        )
 
         self.play(
-            self.frame.animate(run_time=5, rate_func=slow_into)
+            self.frame.animate(run_time=5, rate_func=smooth)
             .set_width(0.9004003)
             .move_to([-1.4324704e00, 8.6061301e-04, 0]),
         )
 
-        self.next_slide()
+        # =====================================================================
+        self.next_slide(
+            notes="Zooming in we can clearly see where all the complexity is happening"
+        )
 
         self.play(
-            self.frame.animate(run_time=8, rate_func=linear)
+            self.frame.animate(run_time=8, rate_func=smooth)
             .set_width(0.00478518)
             .move_to([-1.522637, -0.05915671, 0.0]),
         )
 
+        # =====================================================================
         self.next_slide(notes="Zooming back out")
         self.play(self.frame.animate.restore())
 
+        # =====================================================================
         self.next_slide(
             notes="Moving along (or into) just staring at the pretty image - we can additionally color each pixel loosely on *how slow* it converges to said root"
         )
 
         fractal.set_iteration_coloring(True)
 
+        # =====================================================================
         self.next_slide(
             notes="Zooming in on the chaotic boundry, we can see that it seems like the convergence is slower and slower the closer it is to this fractal boundry"
         )
@@ -1615,14 +1720,15 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.frame.save_state()
 
         self.play(
-            self.frame.animate(run_time=5, rate_func=linear)
+            self.frame.animate(run_time=5, rate_func=smooth)
             .set_width(0.00478518)
             .move_to([-1.522637, -0.05915671, 0.0]),
         )
 
+        # =====================================================================
         self.next_slide(notes="And is decreased when we look right near the roots")
 
-        self.play(self.frame.animate.restore())
+        self.play(self.frame.animate(run_time=4, rate_func=smooth).restore())
 
         root_dots, root_dots_trail = self.make_root_dots()
 
@@ -1637,9 +1743,57 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             .move_to(self.plane.n2p(complex(self.roots[0].get_value()))),
         )
 
+        # =====================================================================
+        self.next_slide(
+            notes="Another piece of terminology to mention, related to how points close to a root will tend to a root - we call this a basin of this root, in this case this is an immediate basin which is a basin of r that also contains r itself"
+        )
+
+        basin_text = TexText("Basin of $r_1$", font_size=20).next_to(
+            root_dots[0], DOWN * 1.5
+        )
+        basin_arrow = Arrow(
+            basin_text.get_center(),
+            root_dots[0].get_center(),
+            path_arc=0 * DEG,
+            thickness=1,
+            buff=0.1,
+        )
+
+        immediate_basin_text = TexText(
+            "Immediate Basin of $r_1$", font_size=20
+        ).move_to(basin_text)
+
+        self.play(LaggedStart(Write(basin_text), Write(basin_arrow)))
+        self.play(TransformMatchingTex(basin_text, immediate_basin_text))
+
+        # =====================================================================
+        self.next_slide(
+            notes="More formally we say that the basin of attraction for a point alpha is the set of points which converge to alpha under repeated composition of our newton's map"
+        )
+        basin_def = Tex(
+            r"\mathcal{B}(\alpha) = \left\{ z: \lim_{n\to\infty} N^n(z) = \alpha \right\}",
+            isolate=["\\alpha", "z", "N"],
+            t2c={"\\alpha": RED_A, "N": YELLOW_B, "z": BLUE_B},
+            font_size=20,
+        ).move_to(self.frame.get_center() + UP * 0.5)
+
+        basin_def_background = BackgroundRectangle(
+            basin_def, color=BLACK, buff=SMALL_BUFF
+        )
+
+        self.play(FadeIn(basin_def_background), Write(basin_def))
+
+        # =====================================================================
         self.next_slide(notes="If we bring back out our little sample point and arrows")
 
-        self.play(self.frame.animate.restore())
+        self.play(
+            FadeOut(immediate_basin_text),
+            FadeOut(basin_text),
+            FadeOut(basin_def_background),
+            FadeOut(basin_arrow),
+            FadeOut(basin_def),
+            self.frame.animate.restore(),
+        )
 
         z0 = self.z0
         z0_dot, z0_tail, z0_label = self.make_z0()
@@ -1661,6 +1815,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.remove(initial_path)
         self.add(path)
 
+        # =====================================================================
         self.next_slide(
             notes="Moving it along we like before - where it starts to 'blow up' becomes a lot easier to notice"
         )
@@ -1709,6 +1864,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         self.remove(circular_z0)
 
+        # =====================================================================
         self.next_slide(
             notes="This fractal isn't just a one off case for this polynomial"
         )
@@ -1723,6 +1879,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             FadeOut(z0_dot),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="If we move around the roots of this polynomial it seems like the fractal boundries never truly go away"
         )
@@ -1730,6 +1887,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.play(FadeOut(tri_poly))
 
         def set_roots(roots=[0, 0, 0], **kwargs):
+            self.degree = len(roots)
             self.play(
                 *(
                     root.animate(**kwargs).set_value(nr)
@@ -1737,11 +1895,12 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
                 )
             )
 
+        # =====================================================================
         self.next_slide(
             notes="In a sense, a way we can study and understand when newtons method acts chaotically by studying the boundry of this fractal"
         )
 
-        r1, r2, r3 = self.roots
+        r1, r2, r3 = self.roots[0:3]
 
         set_roots(roots=[1, 1j, -1])
         self.wait(1)
@@ -1777,6 +1936,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             julia_fractal_opacity.animate.set_value(1.0),
         )
 
+        # =====================================================================
         self.next_slide(
             notes="To get the fractal we could use a vibes based 'just move the roots and see the picture', maybe try seeing how the fractal behaves as we apply symettries over the roots",
         )
@@ -1819,6 +1979,7 @@ class FixedPointMethod(Slide):
         self.add_to_canvas(title=title)
         self.play(Write(title), title.animate.to_edge(UP))
 
+        # =====================================================================
         self.next_slide()
 
         self.play(Write(fixed_point_formula))
@@ -1837,6 +1998,7 @@ class FixedPointMethod(Slide):
 
         axes.add_coordinate_labels()
 
+        # =====================================================================
         self.next_slide()
         cos_graph = axes.get_graph(gcos).set_color(RED)
         self.play(
@@ -1881,6 +2043,7 @@ class FixedPointMethod(Slide):
         apply_rule()
         apply_rule()
 
+        # =====================================================================
         self.next_slide()
 
         self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
@@ -1947,6 +2110,7 @@ class NewtonCubic(Slide):
 
         self.play(Write(coeff_cubic))
 
+        # =====================================================================
         self.next_slide()
 
         factored_cubic = Tex(
@@ -1996,6 +2160,7 @@ class NewtonCubic(Slide):
             self.frame.animate.scale(1.3).shift([0, -0.5, 0]),
         )
 
+        # =====================================================================
         self.next_slide()
 
         self.play(
@@ -2003,6 +2168,7 @@ class NewtonCubic(Slide):
             self.frame.animate.shift([0, -0.5, 0]),
         )
 
+        # =====================================================================
         self.next_slide()
 
         sym_f = simplify(Symbol("d") * (z - r1) * (z - r2) * (z - r3))
@@ -2025,11 +2191,13 @@ class NewtonCubic(Slide):
             self.frame.animate.shift([0, -2, 0]),
         )
 
+        # =====================================================================
         self.next_slide()
         self.play(
             *(Indicate(t) for t in factored_cubic.get_parts_by_tex("d")),
             *(Indicate(t) for t in factored_cubic_deriv.get_parts_by_tex("d")),
         )
+        # =====================================================================
         self.next_slide()
 
         self.play(
@@ -2039,6 +2207,7 @@ class NewtonCubic(Slide):
             self.frame.animate.move_to([0, 0, 0]),
         )
 
+        # =====================================================================
         self.next_slide()
 
         equation = simplify(z - cubic(z) / Derivative(cubic(z), z, evaluate=True))
@@ -2103,6 +2272,7 @@ class NewtonCubic(Slide):
         #
         eq_roots = dict.keys(roots(numer((eq_div)), z))
 
+        # =====================================================================
         self.next_slide()
         self.play(
             Write(
@@ -2119,6 +2289,7 @@ class MontelsThereom(Slide):
         title = TexText("\\emph{Montels Thereom}").center()
         self.play(Write(title))
 
+        # =====================================================================
         self.next_slide()
 
         montel_desc = TexText(
