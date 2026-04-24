@@ -10,8 +10,8 @@ window:
   full_screen: True
 
 camera:
-  # resolution: (3024, 1964)
-  resolution: (1800,1169)
+  resolution: (3024, 1964)
+  # resolution: (1800,1169)
   background_color: "#000000"
   fps: 60
   background_opacity: 1.0

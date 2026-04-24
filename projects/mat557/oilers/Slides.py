@@ -19,8 +19,29 @@ from projects.mat557.oilers.fractal import (
 
 ADD_WAIT_TIME = True
 
+IS_RENDERING = True
+
 
 def add_wait(slide: Slide):
+    if IS_RENDERING and slide.window is None:
+        slide.flush_cache = True
+        slide.disable_caching = True
+        slide.skip_reversing = False
+        # slide.presenter_mode = False
+        slide.show_animation_progress = True
+        slide.leave_progress_bars = True
+        print("Render in progress")
+
+        # slide.next_slide()
+        # slide.next_slide()
+        # slide.next_slide()
+        # slide.next_slide()
+        # slide.next_slide()
+        #
+        # tmp = ValueTracker(0)
+        # slide.play(tmp.animate.set_value(1))
+        # slide.next_slide(note="_transition", auto_next=True)
+
     old = slide.on_resize
 
     if slide.window is not None:
@@ -40,16 +61,14 @@ def add_wait(slide: Slide):
     if ADD_WAIT_TIME and slide.window is not None:
         slide.leave_progress_bars = True
         slide.wait_time_between_slides = 0.0 if ADD_WAIT_TIME else 0
-    # else:
-    #     slide.wait_time_between_slides = 1.0
 
-    prev = slide.next_slide
+        prev = slide.next_slide
 
-    def next_slide(notes="", **kwargs):
-        print("Slide Notes: ", notes)
-        return prev(notes=notes, **kwargs)
+        def next_slide(notes="", **kwargs):
+            print("Slide Notes: ", notes)
+            return prev(notes=notes, **kwargs)
 
-    slide.next_slide = next_slide
+        slide.next_slide = next_slide
 
 
 class FirstTitle(Slide):
@@ -200,17 +219,13 @@ class FirstTitle(Slide):
         self.embed()
 
 
-class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
-    function: Polynomial = SIMPLE_POLY_EXAMPLES[1]
+class History(Slide):
+    skip_reversing = True
 
     def construct(self) -> None:
         add_wait(self)
 
-        self.wait(1)
-        self.next_slide()
-        self.wait(1)
-        self.next_slide()
-
+        self.next_slide(notes="title card")
         title = Title("Newtons", "Method", font_size=50)
         title_newton = title.select_part("Newtons")
         title_method = title.select_part("Method")
@@ -220,54 +235,51 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         # ====================================================
 
         self.play(Write(title))
-
+        self.next_slide(notes="Some review on newtons method and a lil history")
         self.add_to_canvas(title=title)
 
-        portrait_newton = Group(
+        # =====================================================================
+
+        portrait_newton = (
             PortraitWithCaption(
                 image_path="./image/isaac_newton.jpg", name="Isaac Newton", caption=None
             ).shift(LEFT * 2.5),
             SurroundingRectangle(title_newton),
-            Arrow(),
         )
 
-        portrait_method = Group(
+        portrait_method = (
             PortraitWithCaption(
                 image_path="./image/isaac_newton.jpg", name="John Method", caption=None
             ).shift(RIGHT * 2.5),
             SurroundingRectangle(title_method),
-            Arrow(),
         )
 
         # arrows
-        portrait_newton[2].become(
-            Arrow(portrait_newton[1], portrait_newton[0], path_arc=PI / 6)
-        )
+        newton_arrow = Arrow(portrait_newton[1], portrait_newton[0], path_arc=PI / 6)
 
-        portrait_method[2].become(
-            Arrow(portrait_method[1], portrait_method[0], path_arc=-PI / 6)
-        )
-
-        self.next_slide(notes="Some review on newtons method and a lil history")
-        # =====================================================================
+        method_arrow = Arrow(portrait_method[1], portrait_method[0], path_arc=-PI / 6)
 
         self.play(
-            ShowCreation(portrait_newton[0], run_time=0.5),
+            Write(portrait_newton[0][1], run_time=0.5),
             FadeIn(portrait_newton[1]),
             FadeIn(portrait_newton[0][0]),
-            Write(portrait_newton[2]),
-        )
-        self.play(
-            ShowCreation(portrait_method[0], run_time=0.5),
-            FadeIn(portrait_method[1]),
-            FadeIn(portrait_method[0][0]),
-            Write(portrait_method[2]),
+            Write(newton_arrow),
         )
 
-        self.next_slide(
-            notes="""This root-finding procedure was made by Isaac newton and John Method ()"""
+        self.next_slide(notes="This root-finding procedure was made by Isaac newton")
+
+        self.play(
+            Write(portrait_method[0][1], run_time=0.5),
+            FadeIn(portrait_method[1]),
+            FadeIn(portrait_method[0][0]),
+            Write(method_arrow),
         )
-        # =====================================================================
+
+        self.next_slide(notes="This root-finding procedure was made by John Method")
+
+        self.play(
+            *(FadeOut(m) for m in self.mobjects_without_canvas),
+        )
 
         # ====================================================
         #                       Formula
@@ -293,10 +305,6 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         brace_question = Tex("x=?", **tex_kw).next_to(brace, DOWN)
 
         self.play(
-            *(FadeOut(m) for m in self.mobjects_without_canvas),
-        )
-
-        self.play(
             LaggedStart(
                 Write(tex_func),
                 Write(brace),
@@ -309,15 +317,15 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         )
         # =====================================================================
 
-        self.play(FadeOut(brace), FadeOut(brace_question))
-
         newtons_tex_seq = Tex(r"x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}", **tex_kw)
         newtons_tex_fn = Tex(r"N(x) = x - \frac{f(x)}{f'(x)}", **tex_kw)
 
         equations = VGroup(newtons_tex_seq)
 
         self.play(
-            TransformMatchingTex(tex_func, newtons_tex_seq, key_map={"x": "x_{n+1}"})
+            FadeOut(brace),
+            FadeOut(brace_question),
+            TransformMatchingTex(tex_func, newtons_tex_seq, key_map={"x": "x_{n+1}"}),
         )
 
         self.next_slide(notes="Newtons method is the following sequence")
@@ -507,28 +515,51 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
             TransformMatchingTex(iterative_tex, iterative_tex_fn),
         )
 
-        self.remove_from_canvas("title")
-        self.add_to_canvas(formula=newtons_tex_fn)
         self.next_slide(
             notes="The goal of Sutherland's thesis is a breakdown of this method farther than what either Newton or Raphson sought, the first step for this will be to switch from our iterative view into one of composition"
         )
+        self.remove_from_canvas("title")
+        self.play(
+            *(FadeOut(m) for m in self.mobjects_without_canvas),
+        )
+        self.next_slide(notes="_transition")
+
+
+class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
+    function: Polynomial = SIMPLE_POLY_EXAMPLES[1]
+
+    def construct(self):
+        add_wait(self)
+
         # ====================================================
+        tex_kw = {
+            "isolate": ["x_{n+1}", "x_n", "z_n", "z_{n+1}", "P", "P'", "f", "(", ")"],
+            "t2c": {
+                "x_{n+1}": BLUE_B,
+                "x_n": BLUE_B,
+                "z_{n+1}": BLUE_B,
+                "z_\\d": BLUE_B,
+                "x_\\d": BLUE_B,
+                "z_n": BLUE_B,
+                "z": BLUE_B,
+                "x": BLUE_B,
+            },
+        }
+        newtons_tex_fn = Tex(r"N(x) = x - \frac{f(x)}{f'(x)}", **tex_kw)
 
         # ====================================================
         #                Geometric Showcase
         # ====================================================
 
         # =====================================================================
+        newtons_tex_fn.scale(0.8).to_corner(DL)
+        self.add_to_canvas(formula=newtons_tex_fn)
 
         (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
         func_graph.set_color(RED_B)
 
         self.play(
-            *(FadeOut(m) for m in self.mobjects_without_canvas),
-        )
-
-        self.play(
-            newtons_tex_fn.animate.scale(0.8).to_corner(DL),
+            Write(newtons_tex_fn),
             ShowCreation(axes),
         )
         self.play(
@@ -742,6 +773,12 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         # (axes, func_graph, x0, x0_marker, limit_point) = self.setup_graphs()
 
         add_wait(self)
+
+        tmp = ValueTracker(0)
+        self.add(tmp)
+        self.play(tmp.animate.set_value(1))
+        self.next_slide(notes="_transition")
+        self.remove(tmp)
 
         title = Title("Newtons Method")
 
@@ -1001,7 +1038,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
         )
         # =====================================================================
 
-        self.play(*(FadeOut(m) for m in self.mobjects))
+        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
 
 
 class NewtonComplex(ThreeDSlide):
