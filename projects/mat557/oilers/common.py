@@ -103,18 +103,34 @@ class AbstractNewtonsMethodRealVisualisation(Slide):
             function=lambda t: m * (t - x) + f_x, color=RED, opacity=0.8
         )
         line = line_func
-        self.play(ShowCreation(line, lag_ratio=0.5, run_time=speed))
 
         next_x = x - f_x / m
 
         intersection = Dot(line_func.get_point_from_function(next_x), color=RED)
 
-        self.play(ShowCreation(intersection, run_time=speed / 2))
-        self.play(self.x0.animate(run_time=speed).set_value(next_x))
+        self.play(
+            ShowCreation(line, lag_ratio=0.5, run_time=speed),
+        )
+
+        self.play(
+            Succession(
+                ShowCreation(intersection, run_time=speed / 2),
+                self.x0.animate(run_time=speed).set_value(next_x),
+            )
+        )
+
         self.play(
             FadeOut(line, run_time=speed),
             FadeOut(intersection, run_time=speed),
         )
+
+        # self.play(ShowCreation(line, lag_ratio=0.5, run_time=speed))
+        # self.play(ShowCreation(intersection, run_time=speed / 2))
+        # self.play(self.x0.animate(run_time=speed).set_value(next_x))
+        # self.play(
+        #     FadeOut(line, run_time=speed),
+        #     FadeOut(intersection, run_time=speed),
+        # )
         self.remove(line, intersection)
 
     def make_limiting_marker(self):

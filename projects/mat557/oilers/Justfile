@@ -14,7 +14,7 @@ playground scene="Playground":
     @uv run manimgl "{{ justfile_dir() }}/{{ file }}" {{ scene }}
 
 @render slides=slides:
-    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} --uhd
+    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} --hd
 
 @renderm slides=slides:
     @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} -m
