@@ -97,6 +97,7 @@ uniform float u_opacity = 1.0;
 
 // Fragment Shader Inputs and Outputs
 in vec3 xyz_coords;
+uniform vec3 u_plane_offset = vec3(0.);
 
 out vec4 frag_color;
 
@@ -680,6 +681,6 @@ vec4 fragment(in vec2 pixel_z) {
 #INSERT finalize_color.glsl
 
 void main() {
-    vec4 color = fragment(xyz_coords.xy);
+    vec4 color = fragment((xyz_coords + u_plane_offset).xy);
     frag_color = finalize_color(vec4(color.rgb, color.a * u_opacity), xyz_coords, vec3(0.0, 0.0, 1.0));
 }

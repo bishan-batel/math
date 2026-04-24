@@ -1,12 +1,15 @@
 # pyright: reportGeneralTypeIssues=false
 
 from __future__ import absolute_import
+from os import wait
 from typing import TYPE_CHECKING
 
 
 from manim_slides.slide import Slide, ThreeDSlide
 from manim_slides.slide.animation import Wipe
-from manimlib import *  # pyright:ignore
+from manimlib import *
+import scipy  # pyright:ignore
+import projects.mat557.oilers.methods as methods
 
 from custom.complex import apply_complex_map_to_plane
 from custom.typings import *  # pyright:ignore
@@ -916,7 +919,7 @@ class NewtonsMethodSimplification(AbstractNewtonsMethodRealVisualisation):
 
         # =====================================================================
         self.next_slide(
-            notes="Another nice thing is that the factored form has this sort of symettry between each root, meaning each one is swappable"
+            notes="Another nice thing is that the factored form has this sort of symetry between each root, meaning each one is swappable"
         )
 
         def swap_roots(i, j):
@@ -1238,7 +1241,7 @@ class NewtonComplex(ThreeDSlide):
         real_graph = real_axes.get_graph(lambda z: self.f(z), bind=True)
 
         self.play(
-            ShowCreation(real_axes),
+            FadeIn(real_axes),
             FadeIn(real_graph),
             self.frame.animate.rotate(90 * DEG, axis=RIGHT),
         )
@@ -1458,6 +1461,8 @@ class NewtonComplex(ThreeDSlide):
             notes="We can do only so much from looking at the path of one seed value at a time though, so I'm going to show a demonstration of a very common practice in Holomorphic Dynamis"
         )
 
+        path.suspend_updating()
+        limit_point.suspend_updating()
         self.play(
             FadeOut(z0_marker),
             FadeOut(z0_label),
@@ -1465,6 +1470,7 @@ class NewtonComplex(ThreeDSlide):
             FadeOut(path),
             FadeOut(limit_point),
         )
+        self.remove(roots_tails)
         # =====================================================================
         self.next_slide(
             notes="This is where the cool stuff begins, lets see what a whole array of seed values will do, lets spread a bunch of different values across the plane"
@@ -1611,7 +1617,7 @@ class AbstractNewtonFractal(Slide):
         ComplexValueTracker(-100j + i * 1j) for i in range(FractalNewton.MAX_DEGREE)
     ]
 
-    degree = 5
+    degree = 3
 
     plane: ComplexPlane
     fractal: FractalNewton
@@ -1768,13 +1774,20 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         for v, root in zip(SIMPLE_POLY_EXAMPLES[2].roots(), self.roots):
             root.set_value(v)
 
+        self.degree = 3
+
+        # =====================================================================
+        self.next_slide(
+            notes="To be honest, most of me working on this presentation has been fiddling and playing round with this family of fractals because they look really cool"
+        )
         self.add(plane, fractal)
+        self.wait(1)
 
         self.frame.save_state()
 
         # =====================================================================
         self.next_slide(
-            notes="To be honest, most of me working on this presentation has been fiddling and playing round with this family of fractals because they look really cool"
+            notes="Zooming in we can clearly see where all the complexity is happening"
         )
 
         self.play(
@@ -1785,7 +1798,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         # =====================================================================
         self.next_slide(
-            notes="Zooming in we can clearly see where all the complexity is happening"
+            notes="Zooming in further we can see this complexity really does seem to go on forever"
         )
 
         self.play(
@@ -1800,10 +1813,11 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         # =====================================================================
         self.next_slide(
-            notes="Moving along (or into) just staring at the pretty image - we can additionally color each pixel loosely on *how slow* it converges to said root"
+            notes="Moving along (or into) just staring at the pretty image - we can additionally color each pixel loosely on *how slow* it converges to said root. To be clear whats goes on - each pixel is being treated as a seed value and is following newtons method until it gets close enough to a root - how many iterations it takes until it gets 'close enough' is what I use to determine the colors here."
         )
 
         fractal.set_iteration_coloring(True)
+        self.wait(1)
 
         # =====================================================================
         self.next_slide(
@@ -1875,18 +1889,10 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         )
 
         self.play(FadeIn(basin_def_background), Write(basin_def))
+        self.wait(1)
 
         # =====================================================================
         self.next_slide(notes="If we bring back out our little sample point and arrows")
-
-        self.play(
-            FadeOut(immediate_basin_text),
-            FadeOut(basin_text),
-            FadeOut(basin_def_background),
-            FadeOut(basin_arrow),
-            FadeOut(basin_def),
-            self.frame.animate.restore(),
-        )
 
         z0 = self.z0
         z0_dot, z0_tail, z0_label = self.make_z0()
@@ -1896,6 +1902,12 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         initial_path = self.updater_make_path()
 
         self.play(
+            FadeOut(immediate_basin_text),
+            FadeOut(basin_text),
+            FadeOut(basin_def_background),
+            FadeOut(basin_arrow),
+            FadeOut(basin_def),
+            self.frame.animate.restore(),
             ShowCreation(z0_dot),
             Write(initial_path, run_time=2),
             Write(z0_label),
@@ -1927,7 +1939,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         circular_z0.add_updater(circular_z0_update, call=False)
 
         self.play(
-            self.z0.animate.set_value(2),
+            z0.animate.set_value(2),
         )
 
         self.add(circular_z0)
@@ -1949,10 +1961,10 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.play(circular_z0.animate(run_time=2).set_value(0 + 1 / 6))
         wiggle_cz0(run_time=0.5)
 
-        self.wait(1.4)
-        self.play(circular_z0.animate(run_time=1).set_value(1 / 3 + 1 / 6))
-        wiggle_cz0(run_time=0.5)
-
+        # self.wait(1.4)
+        # self.play(circular_z0.animate(run_time=1).set_value(1 / 3 + 1 / 6))
+        # wiggle_cz0(run_time=0.5)
+        #
         self.wait(1.4)
         self.play(circular_z0.animate(run_time=1).set_value(2 / 3 + 1 / 6))
         wiggle_cz0(run_time=0.5)
@@ -1976,7 +1988,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         # =====================================================================
         self.next_slide(
-            notes="If we move around the roots of this polynomial it seems like the fractal boundries never truly go away"
+            notes="If we move around the roots of this polynomial it seems like the fractal boundries never truly go away, and what the fractal boundry means in this context is a messier and more chaotic path a seed value has to take."
         )
 
         self.play(FadeOut(tri_poly))
@@ -1996,6 +2008,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
                     for root, nr in zip(self.curr_roots(), roots)
                 )
             )
+            self.wait(1)
 
         # =====================================================================
         self.next_slide(
@@ -2005,20 +2018,13 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         r1, r2, r3 = self.roots[0:3]
 
         set_roots(roots=[1, 1j, -1])
-        self.wait(1)
         set_roots([4 + 0.5j, -3 + 1j, 1 - 2j])
 
-        self.wait(1)
         set_roots([-2, 0, 2])
 
-        self.wait(1)
         set_roots(SIMPLE_POLY_EXAMPLES[0].roots())
 
-        self.wait(1)
-
         set_roots([r2.get_value(), r3.get_value(), r1.get_value()])
-
-        self.wait(1)
 
         chaos_relation = TexText(r"Chaos $\longrightarrow$ Fractal").to_edge(UP)
 
@@ -2040,14 +2046,37 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         # =====================================================================
         self.next_slide(
-            notes="To get the fractal we could use a vibes based 'just move the roots and see the picture', maybe try seeing how the fractal behaves as we apply symettries over the roots",
+            notes="The terminology that is very related to this chaos is that this boundry is called the Julia Set of our map N(z)"
         )
+
+        julia_label = (
+            TexText(
+                r"Julia Fractal $\mathcal{J}({N})$",
+                isolate=[r"\mathcal{J}", "{N}"],
+                t2c={"{N}": YELLOW_A, r"\mathcal{J}": BLUE_B},
+            )
+            .to_corner(UL)
+            .shift(DOWN)
+            .shift(RIGHT)
+        )
+        julia_arrow = Arrow(julia_label, plane.n2p(-2), path_arc=DEG * 90)
+        self.play(Write(julia_label), Write(julia_arrow))
+
+        # =====================================================================
+        self.next_slide(notes="Fade out julia fractal")
 
         self.play(
             fractal_opacity.animate.set_value(1),
             julia_fractal_opacity.animate.set_value(0.0),
             FadeIn(root_dots),
+            FadeOut(julia_label),
+            FadeOut(julia_arrow),
             FadeOut(chaos_relation),
+        )
+
+        # =====================================================================
+        self.next_slide(
+            notes="To get the fractal we could use a vibes based 'just move the roots and see the picture', maybe try seeing how the fractal behaves as we apply symettries over the roots",
         )
 
         self.remove(julia_fractal)
@@ -2132,12 +2161,14 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         self.play(FadeIn(newton_map_background), Write(newton_map_properties))
 
         # =====================================================================
-        self.next_slide("The affine in this part just refers to rotation and scale")
+        self.next_slide(
+            notes="The affine in this part just refers to rotation and scale"
+        )
         self.play(Write(labels))
 
         # =====================================================================
         self.next_slide(
-            "What this means is when we study these maps, what is done in Sutherland's paper other sources I've found is that instead of accounting for roots within the entire complex plane, we can focus our view to roots within the unit disk"
+            notes="What this means is when we study these maps, what is done in Sutherland's paper other sources I've found is that instead of accounting for roots within the entire complex plane, we can focus our view to roots within the unit disk"
         )
 
         self.play(
@@ -2193,7 +2224,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
 
         # =====================================================================
         self.next_slide(
-            "Applying the transformation we can see that it does indeed lie on the disc and look similar"
+            notes="Applying the transformation we can see that it does indeed lie on the disc and look similar"
         )
 
         unit_disc = Circle(
@@ -2212,6 +2243,7 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
         )
 
         # TODO: fix fading out
+        self.wait(1)
         # self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
         self.embed()
 
@@ -2488,7 +2520,10 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
             faded_line_ratio=12,
         ).move_to(planes[0])
 
-        self.play(Write(input_plane))
+        self.next_slide(
+            notes="If we look at a collection of ponits like this grid and map it through a function"
+        )
+        self.play(Write(input_plane), Write(arrow))
 
         function = apply_complex_map_to_plane(
             input_plane.copy().prepare_for_nonlinear_transform(),
@@ -2497,10 +2532,7 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
         ).move_to(planes[1])
 
         self.play(
-            LaggedStart(
-                Write(arrow),
-                Transform(input_plane, function, run_time=2),
-            )
+            Transform(input_plane, function, run_time=2),
         )
 
         self.next_slide(
@@ -2742,6 +2774,147 @@ class FixedPointMethod(Slide):
 
         self.play(Transform(title, holo_title))
         self.add_to_canvas(htitle=holo_title)
+
+
+class RabbitHolePoints(AbstractNewtonFractal):
+    degree = 12
+
+    def construct(self) -> None:
+        add_wait(self)
+
+        plane = self.make_plane()
+        fractal = self.make_fractal()
+        root_dots = self.make_root_dots()
+        fractal.set_should_color_cycles(False)
+        fractal.set_iteration_coloring(True)
+        # fractal.scene = None
+        fractal.f_always.move_to(lambda: plane).set_plane_offset(
+            lambda: -plane.get_center()
+        )
+
+        root_opacities = [ValueTracker(1) for _ in range(FractalNewton.MAX_DEGREE)]
+        fractal.f_always.set_color_opacities(
+            lambda: [float(r.get_value()) for r in root_opacities],
+        )
+
+        # for v, root in zip(SIMPLE_POLY_EXAMPLES[2].roots(), self.roots):
+        #     root.set_value(v)
+        #
+        def set_roots(roots=[0, 0, 0], dist_based=False, run_time=1.0, **kwargs):
+            # self.degree = len(roots)
+            self.play(
+                *(
+                    root.animate(
+                        run_time=(
+                            run_time + max(0, abs(root.get_value() - nr) * 0.05 - 1)
+                            if dist_based
+                            else run_time
+                        ),
+                        **kwargs,
+                    ).set_value(nr)
+                    for root, nr in zip(self.curr_roots(), roots)
+                )
+            )
+            self.wait(1)
+
+        def apply_to_roots(func: Callable[[complex], complex], **kwargs):
+            set_roots(
+                [func(complex(r.get_value())) for r in self.curr_roots()], **kwargs
+            )
+
+        # self.degree = 8
+
+        for i in range(0, self.degree):
+            self.roots[i].set_value(
+                np.exp(random.random() * 4j * PI) * 3 * random.random()
+            )
+
+        self.next_slide(
+            notes="Continuing off this is a bit strange, this thesis is really dense and everything I've convered so far is basically less than a fourth of the paper itself - but I couldn't really skip it because its kindof vital to understanding many other things - and even then I'm at the point of not truly understanding"
+        )
+        fractal_opacity = ValueTracker(0)
+        fractal.f_always.set_opacity(lambda: fractal_opacity.get_value())
+        self.add(plane, fractal, root_dots[1])
+        fractal.pin(self)
+        self.play(fractal_opacity.animate.set_value(1))
+
+        self.next_slide(
+            notes="The thesis delves way past my ability to explain (especially cause I was a bit crunched for time because of other classes) but the main results are finding the width of imediate basins"
+        )
+
+        thesis_images = Group(
+            ImageMobject("./image/basin_width.png"),
+            ImageMobject("./image/manning_construction.png"),
+            ImageMobject("./image/open_modulus.png"),
+            ImageMobject("./image/calculations.png"),
+            ImageMobject("./image/finally_a_result.png"),
+            ImageMobject("./image/main_thereom.png"),
+            ImageMobject("./image/final_result.png"),
+        )
+
+        for t in thesis_images:
+            t.set_width(6)
+
+        thesis_images.arrange(RIGHT, buff=LARGE_BUFF)
+
+        for i in range(1, len(thesis_images)):
+            thesis_images.add(
+                Arrow(thesis_images[i - 1], thesis_images[i]).set_color(TEAL_B)
+            )
+
+        thesis_images.shift(-thesis_images[0].get_center())
+
+        self.play(
+            FadeIn(thesis_images),
+            fractal_opacity.animate.set_value(0.8),
+            *(r.animate.set_value(0.2) for r in root_opacities[1:]),
+        )
+
+        # self.next_slide(
+        #     notes="The whole paper is a very long chain that takes 30 pages to a result"
+        # )
+
+        def randomize_roots(scale=1):
+            return (
+                r.animate.set_value(
+                    r.get_value()
+                    * np.exp(2j * PI * 0.1 * random.random())
+                    * (0.5 + (random.random() ** 2) * scale)
+                )
+                for r in self.curr_roots()
+            )
+
+        for i in range(1, 7):
+            self.next_slide(notes=f"Paper {i}")
+            self.play(
+                thesis_images.animate.shift(-thesis_images[i].get_center()),
+                *randomize_roots(),
+                root_opacities[i].animate.set_value(1),
+                *(
+                    r.animate.set_value(0.2)
+                    for j, r in enumerate(root_opacities)
+                    if i != j
+                ),
+            )
+
+        self.play(
+            thesis_images[6].animate.set_width(FRAME_WIDTH * 0.8),
+            *(FadeOut(m, run_time=0.5) for m in thesis_images[7:]),
+            *(FadeOut(m) for m in thesis_images[0:6]),
+            *randomize_roots(6),
+            *(r.animate.set_value(0.8) for r in root_opacities),
+        )
+
+        self.next_slide(notes="But sadly, this was all I had time to cover")
+
+        # self.play(fractal_opacity.animate.set_value(0),root_opacities)
+
+        self.embed()
+
+
+class ThankYou(Slide):
+    def construct(self):
+        pass
 
 
 class NewtonCubic(Slide):

@@ -85,6 +85,9 @@ class FractalNewton(ShaderMobject):
     def set_should_break_on_convergence(self, state=True):
         self.uniforms["u_should_break_on_convergence"] = state
 
+    def set_plane_offset(self, offset):
+        self.uniforms["u_plane_offset"] = offset
+
     def set_epsilon(self, epsilon: float = 1e-3):
         self.epsilon = epsilon
         self.uniforms["u_epsilon"] = epsilon
