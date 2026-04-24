@@ -558,7 +558,6 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
         # =====================================================================
         self.next_slide(
             notes="And we keep applying the function until we make it to a point",
-            loop=False,
         )
 
         for _ in range(4):
@@ -645,7 +644,6 @@ class IntroNewtonsMethod(AbstractNewtonsMethodRealVisualisation):
 
         # =====================================================================
         self.next_slide(
-            loop=False,
             notes="A thing we can notice is that if we start near a root, it tends to attract to that root",
         )
 
@@ -2551,7 +2549,7 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
         self.play(ReplacementTransform(highlight, numer_highlight))
 
         self.next_slide(
-            notes="This understanding of the fixed point method also gives us a very nice argument for why newtons method converges slower when dealing with roots with a multiplicity greater than 1"
+            notes="This understanding of the fixed point method also gives us a very nice argument for why newtons method converges slower when dealing with roots with a multiplicity greater than 1, not going into the whole proof but if you rearrange the terms here"
         )
 
         newton_multiplicity = VGroup(
@@ -2564,7 +2562,7 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
                 **tex_kw,
             ).next_to(newton_deriv[1], DOWN),
             Tex(
-                r"{N'}(\infty) =  \frac{{m} - 1}{{m}}",
+                r"{N'}(\infty) =  \frac{{d}}{{d} - 1}",
                 **tex_kw,
             ).next_to(newton_deriv[1], DOWN),
         )
@@ -2576,6 +2574,18 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
                 newton_multiplicity[0],
             ),
         )
+
+        self.next_slide(
+            notes="You can rearrange to reach the result that the derivative of newtons method at a given root is equal to the following where m is the multiplicity of the root. When m is just one this means the derivative is zero - therefore it is superattracting, but if its greater than one it just means its less than one and will converge slower."
+        )
+
+        self.play(TransformMatchingTex(newton_multiplicity[0], newton_multiplicity[1]))
+
+        self.next_slide(
+            notes="You can also use the derivative to show that the point at infinity is a *repelling* fixed point, with its derivative greater than 1, the largest the degree of the polynomial the more the point at infinity repels"
+        )
+
+        self.play(TransformMatchingTex(newton_multiplicity[1], newton_multiplicity[2]))
 
         # key_map={"{z}": "{m}", "{p}": "\\alpha"},
 

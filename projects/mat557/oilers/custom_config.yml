@@ -7,10 +7,11 @@ window:
   # position_string: UR
   # size: (1800, 1125)
   # position: (0,-1169)
-  full_screen: True
+  # full_screen: True
 
 camera:
-  resolution: (3024, 1964)
+  # resolution: (3024, 1964)
+  resolution: (1800,1169)
   background_color: "#000000"
   fps: 60
   background_opacity: 1.0

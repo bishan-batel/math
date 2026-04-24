@@ -23,8 +23,8 @@ playground scene="Playground":
     @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} -l
 
 @convert slides=slides:
-    @mkdir dist/
-    @uv run manim-slides convert {{ slides }} ./dist/Slides.html --to=html
+    @mkdir -p dist/
+    @uv run manim-slides convert {{ slides }} ./dist/Slides.html --to=pptx --one-file
 
-@present:
-    @uv run manim-slides present {{ slides }}
+@present *args:
+    @uv run manim-slides present {{ slides }} {{ args }}
