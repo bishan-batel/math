@@ -2834,7 +2834,7 @@ class RabbitHolePoints(AbstractNewtonFractal):
         )
         fractal_opacity = ValueTracker(0)
         fractal.f_always.set_opacity(lambda: fractal_opacity.get_value())
-        self.add(plane, fractal, root_dots[1])
+        self.add(plane, fractal, root_dots[1], root_dots[0])
         fractal.pin(self)
         self.play(fractal_opacity.animate.set_value(1))
 
@@ -2849,8 +2849,8 @@ class RabbitHolePoints(AbstractNewtonFractal):
             ImageMobject("./image/calculations.png"),
             ImageMobject("./image/finally_a_result.png"),
             ImageMobject("./image/main_thereom.png"),
-            ImageMobject("./image/final_result.png"),
-        )
+            ImageMobject("./image/final_result.png").set_z_index(9999),
+        ).set_z_index(100)
 
         for t in thesis_images:
             t.set_width(6)
@@ -2868,6 +2868,7 @@ class RabbitHolePoints(AbstractNewtonFractal):
             FadeIn(thesis_images),
             fractal_opacity.animate.set_value(0.8),
             *(r.animate.set_value(0.2) for r in root_opacities[1:]),
+            # *(r.animate.set_opacity(0) for r in root_dots),
         )
 
         # self.next_slide(
@@ -2896,6 +2897,7 @@ class RabbitHolePoints(AbstractNewtonFractal):
                     if i != j
                 ),
             )
+            self.wait(1)
 
         self.play(
             thesis_images[6].animate.set_width(FRAME_WIDTH * 0.8),
@@ -2908,6 +2910,50 @@ class RabbitHolePoints(AbstractNewtonFractal):
         self.next_slide(notes="But sadly, this was all I had time to cover")
 
         # self.play(fractal_opacity.animate.set_value(0),root_opacities)
+
+        self.play(
+            LaggedStart(
+                FadeOut(thesis_images[6]),
+                *(r.animate.set_value(1) for r in root_opacities),
+                LaggedStart(
+                    *(
+                        r.animate(run_time=4).set_value(
+                            np.exp(float(i) / self.degree * 2j * PI) * 3
+                        )
+                        for i, r in enumerate(self.roots)
+                    )
+                ),
+                fractal_opacity.animate.set_value(1),
+            )
+        )
+
+        thank_you_for_listening = (
+            Title("Thank you for listening", font_size=60).set_z_index(9999).shift(DOWN)
+        )
+
+        background = BackgroundRectangle(
+            thank_you_for_listening,
+            fill_opacity=0.7,
+            color=BLACK,
+            buff=MED_LARGE_BUFF * 0.7,
+        ).set_z_index(1000)
+
+        self.play(
+            LaggedStart(
+                *(
+                    r.animate(run_time=4).set_value(
+                        r.get_value()
+                        # * np.sin(np.angle(r.get_value()) + random.random())
+                        * (0.75 + random.random() * 0.5)
+                        * 1j
+                    )
+                    for i, r in enumerate(self.roots)
+                ),
+                *(r.animate.set_opacity(0) for r in root_dots[0]),
+                FadeIn(background),
+                Write(thank_you_for_listening),
+            ),
+        )
 
         self.embed()
 
