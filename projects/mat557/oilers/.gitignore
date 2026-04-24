@@ -1,0 +1,5 @@
+./videos/
+./slides/
+./__pycache__/
+./dist/
+*.pptx

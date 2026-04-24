@@ -14,13 +14,17 @@ playground scene="Playground":
     @uv run manimgl "{{ justfile_dir() }}/{{ file }}" {{ scene }}
 
 @render slides=slides:
-    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }}
+    @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} --uhd
 
 @renderm slides=slides:
     @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} -m
 
 @renderl slides=slides:
     @uv run manim-slides render --GL {{ justfile_dir() }}/Slides.py {{ slides }} -l
+
+@convert slides=slides:
+    @mkdir dist/
+    @uv run manim-slides convert {{ slides }} ./dist/Slides.html --to=html
 
 @present:
     @uv run manim-slides present {{ slides }}

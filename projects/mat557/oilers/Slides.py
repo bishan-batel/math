@@ -1069,24 +1069,44 @@ class NewtonComplex(ThreeDSlide):
                     for r in self.roots
                 ]
 
-                if min(*distances) < 0.1:
+                if min(*distances) < 0.01:
                     break
 
             for i in range(len(values) - 1):
-                lines += Arrow(
-                    plane.n2p(values[i]),
-                    plane.n2p(values[i + 1]),
-                    fill_opacity=0.9,
-                    thickness=2 * (1 - float(i) / (len(values) - 1)),
-                    path_arc=-PI / 2,
-                    fill_color=BLUE_A,
-                    buff=0.0,
+                dot = 0
+
+                vpp = values[i]
+                vp = values[i + 1]
+                v = values[i + 2] if i + 2 < len(values) - 1 else vp
+
+                zpp = plane.n2p(vpp)
+                zp = plane.n2p(vp)
+                z = plane.n2p(v)
+
+                step1 = zp - zpp
+                step2 = z - zp
+
+                dot = -np.dot(
+                    step2 / np.linalg.norm(step2),
+                    step1 / np.linalg.norm(step1),
+                )
+                # dot = np.angle((v - vp) - (vp - vpp))
+                if np.isinf(dot) or np.isnan(dot):
+                    dot = 0 * DEG
+
+                deg_limits = 90 * DEG
+                lines.add(
+                    Arrow(
+                        zpp,
+                        zp,
+                        fill_opacity=0.9,
+                        thickness=2 * (1 - float(i) / (len(values) - 1)),
+                        path_arc=max(min(deg_limits, dot), -deg_limits),
+                        fill_color=BLUE_A,
+                        buff=0.0,
+                    )
                 )
 
-            lines.set_submobject_colors_by_gradient(
-                BLUE_A,
-                self.point_to_root_color(values[-1]) or BLUE_A,
-            )
             lines.set_z_index(5)
             return lines
 
@@ -1242,23 +1262,40 @@ class NewtonComplex(ThreeDSlide):
             notes="If we move around our z value in the complex plane, we can see this 'boundry chaos' seems to persist even there"
         )
 
-        def rotate_z0(rotations=64, rotation_time=8.0, rotation_radius=2):
-            step_time = rotation_time / float(rotations)
+        def rotate_z0(rotation_time=8.0, rotation_radius=2):
+
+            # self.play(
+            #     z0.animate(
+            #         run_time=max(0.1, 1 * np.abs(rotation_radius - z0.get_value()))
+            #     ).set_value(rotation_radius)
+            # )
+
+            rotate_radius_tracker = ComplexValueTracker(np.abs(z0.get_value()))
+
+            initial_rotation = np.angle(z0.get_value())
+            rotate_tracker = ValueTracker(initial_rotation)
+
+            def update_z0(t):
+                z0.set_value(
+                    np.exp(1j * rotate_tracker.get_value())
+                    * rotate_radius_tracker.get_value()
+                )
+                return t
+
+            rotate_tracker.add_updater(update_z0)
+
+            # add rotation helpers
+            self.add(rotate_tracker, rotate_radius_tracker)
+
             self.play(
-                z0.animate(
-                    run_time=max(0.1, 1 * np.abs(rotation_radius - z0.get_value()))
-                ).set_value(rotation_radius)
+                rotate_tracker.animate(run_time=rotation_time).set_value(
+                    2 * PI + initial_rotation
+                ),
+                rotate_radius_tracker.animate(run_time=1).set_value(rotation_radius),
             )
 
-            self.wait(0.5)
-
-            for i in range(0, rotations):
-                angle = (float(i + 1) / rotations) * 360 * DEG
-                self.play(
-                    z0.animate(run_time=step_time, rate_func=linear).set_value(
-                        rotation_radius * np.exp(1j * angle)
-                    )
-                )
+            # remove rotation helpers
+            self.remove(rotate_tracker, rotate_radius_tracker)
 
         rotate_z0()
 
@@ -1315,9 +1352,12 @@ class NewtonComplex(ThreeDSlide):
         def take_step(run_time=0.8, draw_arrows=True):
             points_history.append([newtons(z) for z in points_history[-1]])
 
-            step_dir = [
-                (zp, (z - zp)) for z, zp in zip(points_history[-1], points_history[-2])
-            ]
+            step_dir = np.array(
+                [
+                    (zp, (z - zp))
+                    for z, zp in zip(points_history[-1], points_history[-2])
+                ]
+            )
 
             arrows = VGroup()
             if draw_arrows:
@@ -1357,8 +1397,6 @@ class NewtonComplex(ThreeDSlide):
         self.next_slide(notes="We can see how all the points step forward")
 
         take_step()
-
-        self.embed()
 
         # =====================================================================
         self.next_slide(
@@ -2113,8 +2151,8 @@ class NewtonFractalIntroduction(AbstractNewtonFractal):
             notes="Stepping away from the pretty visuals, theres still a lot more prelimaries needed to formalize this even more (also needed later on in the paper)"
         )
 
-        self.frame.suspend_updating()
-        self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
+        # TODO: fix fading out
+        # self.play(*(FadeOut(m) for m in self.mobjects_without_canvas))
         self.embed()
 
 
@@ -2179,6 +2217,7 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
                 "{Attracting}": BLUE_A,
                 "{Repelling}": RED_A,
                 "{Superattracting}": YELLOW_A,
+                r"\mathcal{O}": TEAL_A,
             },
         }
 
@@ -2463,14 +2502,6 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
                     r"{N'}({z}) =  \frac{ {p}({z}) {p''}({z}) } { {p'}({z})^2 }",
                     **tex_kw,
                 ),
-                Tex(
-                    r"{N'}(\alpha) =  \frac{{m} - 1}{{m}}",
-                    **tex_kw,
-                ),
-                Tex(
-                    r"{N'}(\infinity) =  \frac{{m} - 1}{{m}}",
-                    **tex_kw,
-                ),
             )
             .center()
             .arrange(DOWN)
@@ -2480,7 +2511,6 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
         newton_deriv[1].next_to(newton_deriv[0], DOWN)
         newton_deriv[2].move_to(newton_deriv[1])
         newton_deriv[3].move_to(newton_deriv[1])
-        newton_deriv[4].next_to(newton_deriv[1], DOWN)
 
         self.play(
             fixed_point_types.animate.scale(0.8)
@@ -2524,10 +2554,30 @@ class NewtonPrelimsFixedPoint(AbstractNewtonFractal):
             notes="This understanding of the fixed point method also gives us a very nice argument for why newtons method converges slower when dealing with roots with a multiplicity greater than 1"
         )
 
+        newton_multiplicity = VGroup(
+            Tex(
+                r"{N'}(\alpha) =  \frac{\mathcal{O}({z}^{d}) \mathcal{O}({z}^{{d}-2})}{ \mathcal{O}({z}^{2({d}-1)}) }",
+                **tex_kw,
+            ).next_to(newton_deriv[1], DOWN),
+            Tex(
+                r"{N'}(\alpha) =  \frac{{m} - 1}{{m}}",
+                **tex_kw,
+            ).next_to(newton_deriv[1], DOWN),
+            Tex(
+                r"{N'}(\infty) =  \frac{{m} - 1}{{m}}",
+                **tex_kw,
+            ).next_to(newton_deriv[1], DOWN),
+        )
+
         self.play(
             Uncreate(numer_highlight),
-            TransformMatchingTex(newton_deriv[3].copy(), newton_deriv[4]),
+            TransformMatchingTex(
+                newton_deriv[3].copy(),
+                newton_multiplicity[0],
+            ),
         )
+
+        # key_map={"{z}": "{m}", "{p}": "\\alpha"},
 
         self.embed()
 
